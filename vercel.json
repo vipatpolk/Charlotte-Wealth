@@ -1,34 +1,73 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "angular",
-  "buildCommand": "npm run build:web",
-  "outputDirectory": "apps/web/dist/web/browser",
-  "installCommand": "npm install",
   "cleanUrls": true,
+  "services": {
+    "web": {
+      "root": "apps/web",
+      "framework": "angular",
+      "buildCommand": "npm run build",
+      "outputDirectory": "dist/web/browser",
+      "rewrites": [
+        {
+          "source": "/(.*)",
+          "destination": "/index.html"
+        }
+      ]
+    },
+    "api": {
+      "root": "apps/api",
+      "framework": "nestjs",
+      "buildCommand": "npm run build"
+    }
+  },
   "rewrites": [
     {
-      "source": "/api/backend/:path*",
-      "destination": "https://api.charlotte-wealth.com/:path*"
+      "source": "/api/backend/(.*)",
+      "destination": {
+        "service": "api"
+      }
     },
     {
-      "source": "/portfolio/:path*",
-      "destination": "https://api.charlotte-wealth.com/portfolio/:path*"
+      "source": "/portfolio/(.*)",
+      "destination": {
+        "service": "api"
+      }
     },
     {
-      "source": "/share-lot/:path*",
-      "destination": "https://api.charlotte-wealth.com/share-lot/:path*"
+      "source": "/share-lot/(.*)",
+      "destination": {
+        "service": "api"
+      }
     },
     {
-      "source": "/price/:path*",
-      "destination": "https://api.charlotte-wealth.com/price/:path*"
+      "source": "/price/(.*)",
+      "destination": {
+        "service": "api"
+      }
     },
     {
-      "source": "/nav/:path*",
-      "destination": "https://api.charlotte-wealth.com/nav/:path*"
+      "source": "/nav/(.*)",
+      "destination": {
+        "service": "api"
+      }
+    },
+    {
+      "source": "/health",
+      "destination": {
+        "service": "api"
+      }
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "api"
+      }
     },
     {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": {
+        "service": "web"
+      }
     }
   ],
   "headers": [
@@ -64,4 +103,3 @@
     }
   ]
 }
-
