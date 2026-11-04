@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-v2
   cancel-in-progress: true
 
 env:
@@ -202,6 +202,13 @@ jobs:
       - name: "Run Mobile BDD Specifications"
         if: matrix.suite == 'mobile'
         run: npm run test:mobile
+
+      - name: "Stop Background Servers"
+        if: always()
+        run: |
+          pkill -f "ng serve" || true
+          pkill -f "nest" || true
+          pkill -f "node.*(api|web|mobile)" || true
 
       # --- Artifact Collection ---
       - name: "Upload Cucumber HTML Report"
