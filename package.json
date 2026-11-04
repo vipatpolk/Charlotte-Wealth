@@ -41,9 +41,5 @@
     "ts-node": "^10.9.2",
     "typescript": "~6.0.3",
     "vite": "^8.3.5"
-  },
-  "optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "4.67.4",
-    "@oxc-parser/binding-linux-x64-gnu": "0.150.0"
   }
 }

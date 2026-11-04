@@ -68,10 +68,6 @@
     "vitest": "~5.1.0",
     "webdriverio": "^10.1.0"
   },
-  "optionalDependencies": {
-    "@oxc-parser/binding-linux-x64-gnu": "0.150.0",
-    "@rollup/rollup-linux-x64-gnu": "4.44.0"
-  },
   "prettier": "@ionic/prettier-config",
   "description": "An Ionic project"
 }
