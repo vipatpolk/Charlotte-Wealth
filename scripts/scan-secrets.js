@@ -85,7 +85,7 @@ function scanFile(filePath) {
           matchedStr === 'invalid-token-key-12345' ||
           matchedStr.includes('process.env') ||
           matchedStr.startsWith('00000000') ||
-          matchedStr.startsWith('dev-') ||
+          matchedStr.includes('dev-') ||
           matchedStr.includes('your-') ||
           matchedStr.includes('placeholder') ||
           matchedStr.includes('example') ||
