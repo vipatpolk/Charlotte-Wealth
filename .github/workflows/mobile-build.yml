@@ -53,7 +53,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
           cache: 'gradle'
 
       - name: "Install Monorepo Dependencies"
@@ -152,9 +152,9 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY=""
-          mkdir -p ../../../output/ios-simulator
+          mkdir -p $GITHUB_WORKSPACE/output/ios-simulator
           cd build/simulator/Build/Products/Release-iphonesimulator
-          zip -r ../../../../../../output/ios-simulator/charlotte-wealth-simulator.app.zip App.app
+          zip -r $GITHUB_WORKSPACE/output/ios-simulator/charlotte-wealth-simulator.app.zip App.app
 
       - name: "Upload iOS IPA Artifact"
         uses: actions/upload-artifact@v4
@@ -190,3 +190,4 @@ jobs:
           echo "| **iOS Simulator** | iOS Simulator / Appium | \`.app.zip\` | ${{ needs.build-ios.result == 'success' && '✅ Ready' || needs.build-ios.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "> 📦 Artifacts are available for download in the Artifacts tab of this workflow run." >> $GITHUB_STEP_SUMMARY
+
