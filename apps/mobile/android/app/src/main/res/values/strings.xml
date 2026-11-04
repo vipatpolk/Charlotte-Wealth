@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Charlotte Wealth</string>
+    <string name="title_activity_main">Charlotte Wealth</string>
+    <string name="package_name">com.charlottewealth.app</string>
+    <string name="custom_url_scheme">com.charlottewealth.app</string>
+</resources>

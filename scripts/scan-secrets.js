@@ -16,7 +16,11 @@ const EXCLUDE_DIRS = new Set([
   '.angular',
   '.git',
   '.system_generated',
-  '.appium'
+  '.appium',
+  '.gradle',
+  'DerivedData',
+  'build',
+  'assets'
 ]);
 
 const EXCLUDE_EXTENSIONS = new Set([
@@ -52,6 +56,14 @@ function scanDir(dir) {
   for (const entry of entries) {
     if (EXCLUDE_DIRS.has(entry.name)) continue;
     const fullPath = path.join(dir, entry.name);
+
+    // Skip Capacitor generated web asset copies (identical to excluded apps/mobile/www)
+    if (
+      fullPath.includes(path.join('apps', 'mobile', 'android', 'app', 'src', 'main', 'assets')) ||
+      fullPath.includes(path.join('apps', 'mobile', 'ios', 'App', 'App', 'public'))
+    ) {
+      continue;
+    }
 
     if (entry.isDirectory()) {
       scanDir(fullPath);

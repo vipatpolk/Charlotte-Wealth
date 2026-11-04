@@ -1,0 +1,192 @@
+name: Mobile Release Build (.apk & .ipa)
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_target:
+        description: 'Target platform to build'
+        required: true
+        default: 'both'
+        type: choice
+        options:
+          - 'both'
+          - 'android'
+          - 'ios'
+      build_type:
+        description: 'Build flavor'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+          - 'debug'
+          - 'release'
+  push:
+    tags:
+      - 'v*.*.*'
+
+concurrency:
+  group: mobile-build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+  CI: 'true'
+
+jobs:
+  # ============================================================================
+  # Stage 1: Android Build (.apk)
+  # ============================================================================
+  build-android:
+    name: "🤖 Build Android Package (.apk)"
+    if: github.event_name == 'push' || github.event.inputs.build_target != 'ios'
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+
+      - name: "Setup Node.js"
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: "Setup Java JDK"
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: "Install Monorepo Dependencies"
+        run: |
+          rm -f package-lock.json
+          npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: "Build Mobile Web Assets"
+        run: npm run build:mobile
+
+      - name: "Sync Capacitor Android Platform"
+        working-directory: apps/mobile
+        run: npx cap sync android
+
+      - name: "Assemble Android APK"
+        working-directory: apps/mobile/android
+        run: |
+          chmod +x gradlew
+          if [ "${{ github.event.inputs.build_type }}" == "release" ]; then
+            ./gradlew assembleRelease
+          else
+            ./gradlew assembleDebug
+          fi
+
+      - name: "Collect Android APK Artifacts"
+        run: |
+          mkdir -p output/android
+          find apps/mobile/android/app/build/outputs/apk/ -name "*.apk" -exec cp {} output/android/ \;
+          ls -la output/android/
+
+      - name: "Upload Android APK Artifact"
+        uses: actions/upload-artifact@v4
+        with:
+          name: charlotte-wealth-android-apk
+          path: output/android/*.apk
+          retention-days: 30
+
+  # ============================================================================
+  # Stage 2: iOS Build (.ipa & Simulator .app)
+  # ============================================================================
+  build-ios:
+    name: "🍏 Build iOS Application (.ipa)"
+    if: github.event_name == 'push' || github.event.inputs.build_target != 'android'
+    runs-on: macos-latest
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+
+      - name: "Setup Node.js"
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: "Install Monorepo Dependencies"
+        run: |
+          rm -f package-lock.json
+          npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: "Build Mobile Web Assets"
+        run: npm run build:mobile
+
+      - name: "Sync Capacitor iOS Platform"
+        working-directory: apps/mobile
+        run: npx cap sync ios
+
+      - name: "Build iOS Release Archive"
+        working-directory: apps/mobile/ios/App
+        run: |
+          xcodebuild -project App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/App.xcarchive \
+            archive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      - name: "Package Unsigned .ipa"
+        run: |
+          mkdir -p output/ios/Payload
+          cp -r apps/mobile/ios/App/build/App.xcarchive/Products/Applications/App.app output/ios/Payload/
+          cd output/ios
+          zip -r charlotte-wealth-unsigned.ipa Payload
+          rm -rf Payload
+          ls -la
+
+      - name: "Build iOS Simulator App (.app.zip)"
+        working-directory: apps/mobile/ios/App
+        run: |
+          xcodebuild -project App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/simulator \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+          mkdir -p ../../../output/ios-simulator
+          cd build/simulator/Build/Products/Release-iphonesimulator
+          zip -r ../../../../../../output/ios-simulator/charlotte-wealth-simulator.app.zip App.app
+
+      - name: "Upload iOS IPA Artifact"
+        uses: actions/upload-artifact@v4
+        with:
+          name: charlotte-wealth-ios-ipa
+          path: output/ios/*.ipa
+          retention-days: 30
+
+      - name: "Upload iOS Simulator App Artifact"
+        uses: actions/upload-artifact@v4
+        with:
+          name: charlotte-wealth-ios-simulator-app
+          path: output/ios-simulator/*.zip
+          retention-days: 30
+
+  # ============================================================================
+  # Stage 3: Build Summary
+  # ============================================================================
+  build-summary:
+    name: "📊 Mobile Build Summary"
+    needs: [build-android, build-ios]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Generate Summary Report"
+        run: |
+          echo "## 📱 Charlotte Wealth Mobile Build Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Artifact | Target | Format | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Android APK** | Real Device / Android Emulator | \`.apk\` | ${{ needs.build-android.result == 'success' && '✅ Ready' || needs.build-android.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **iOS IPA** | Real Device (Unsigned Payload) | \`.ipa\` | ${{ needs.build-ios.result == 'success' && '✅ Ready' || needs.build-ios.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **iOS Simulator** | iOS Simulator / Appium | \`.app.zip\` | ${{ needs.build-ios.result == 'success' && '✅ Ready' || needs.build-ios.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> 📦 Artifacts are available for download in the Artifacts tab of this workflow run." >> $GITHUB_STEP_SUMMARY

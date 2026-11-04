@@ -19,7 +19,7 @@ export const config: WebdriverIO.Config = {
       ...(process.env.APP_PATH
         ? {
             'appium:app': process.env.APP_PATH,
-            'appium:bundleId': process.env.IOS_BUNDLE_ID || 'io.ionic.starter',
+            'appium:bundleId': process.env.IOS_BUNDLE_ID || 'com.charlottewealth.app',
             'appium:autoAcceptAlerts': true,
           }
         : {

@@ -19,8 +19,8 @@ export const config: WebdriverIO.Config = {
       ...(process.env.APP_PATH
         ? {
             'appium:app': process.env.APP_PATH,
-            'appium:appPackage': process.env.ANDROID_APP_PACKAGE || 'io.ionic.starter',
-            'appium:appActivity': process.env.ANDROID_APP_ACTIVITY || 'io.ionic.starter.MainActivity',
+            'appium:appPackage': process.env.ANDROID_APP_PACKAGE || 'com.charlottewealth.app',
+            'appium:appActivity': process.env.ANDROID_APP_ACTIVITY || 'com.charlottewealth.app.MainActivity',
             'appium:autoGrantPermissions': true,
           }
         : {
