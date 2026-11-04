@@ -54,17 +54,25 @@ export function getBrowser(): Browser {
 }
 
 BeforeAll(async () => {
-  browser = await chromium.launch({
-    headless: process.env.HEADLESS !== 'false',
-  });
+  try {
+    browser = await chromium.launch({
+      headless: process.env.HEADLESS !== 'false',
+    });
+  } catch (err: any) {
+    // Graceful fallback for headless or pure API test execution
+    console.warn(`[setup] Chromium browser launch skipped: ${err?.message || err}`);
+  }
 
   configure({
-    actors: Cast.where((actor) =>
-      actor.whoCan(
-        BrowseTheWebWithPlaywright.using(browser),
-        CallAnApi.at(process.env.API_BASE_URL || 'http://localhost:3000')
-      )
-    ),
+    actors: Cast.where((actor) => {
+      const abilities: any[] = [
+        CallAnApi.at(process.env.API_BASE_URL || 'http://localhost:3000'),
+      ];
+      if (browser) {
+        abilities.push(BrowseTheWebWithPlaywright.using(browser));
+      }
+      return actor.whoCan(...abilities);
+    }),
     crew: [
       ArtifactArchiver.storingArtifactsAt('./target/site/serenity'),
       Photographer.whoWill(TakePhotosOfFailures),

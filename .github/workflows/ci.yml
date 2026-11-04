@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
 
 jobs:
   # ----------------------------------------------------------------------------
@@ -120,7 +120,7 @@ jobs:
 
       - name: "Install Playwright Browsers"
         if: matrix.suite != 'api'
-        run: npx playwright install --with-deps chromium
+        run: npx --workspace=e2e playwright install --with-deps chromium
 
       - name: "Prepare Test Environment (.env)"
         env:
@@ -186,6 +186,7 @@ jobs:
           name: cucumber-report-${{ matrix.suite }}
           path: apps/e2e/target/cucumber-report.html
           retention-days: 14
+          if-no-files-found: ignore
 
       - name: "Upload Serenity/JS Documentation & Failure Photos"
         uses: actions/upload-artifact@v4
@@ -194,6 +195,7 @@ jobs:
           name: serenity-artifacts-${{ matrix.suite }}
           path: apps/e2e/target/site/serenity/
           retention-days: 14
+          if-no-files-found: ignore
 
   # ----------------------------------------------------------------------------
   # Stage 4: Test Summary Aggregation
