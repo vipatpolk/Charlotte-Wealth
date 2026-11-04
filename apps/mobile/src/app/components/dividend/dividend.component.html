@@ -1,0 +1,902 @@
+<div class="div-container">
+
+  <!-- HEADER & CONTROLS -->
+  <div class="div-header">
+    <div class="div-title-group">
+      <h2 class="div-title">
+        <svg class="div-title-icon w-6 h-6 text-emerald-500 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>Dividend & Income Yield</span>
+      </h2>
+      <p class="div-subtitle">
+        FIFO dividend cashflow accounting, Yield on Cost (YOC), and holding distribution ledgers
+      </p>
+    </div>
+
+    <!-- Actions: Global Asset Type Filter + Historical Year Switcher + Export CSV -->
+    <div class="div-header-actions">
+      <!-- Global Asset Type Filter Pills -->
+      <div class="global-filter-pills">
+        <button
+          type="button"
+          (click)="setAssetType('all')"
+          class="global-pill-btn"
+          [class.active]="selectedAssetType() === 'all'">
+          All Assets
+        </button>
+        <button
+          type="button"
+          (click)="setAssetType('us-stock')"
+          class="global-pill-btn"
+          [class.active]="selectedAssetType() === 'us-stock'">
+          <span class="color-dot" style="background-color: #3b82f6;"></span>
+          U.S. Stocks
+        </button>
+        <button
+          type="button"
+          (click)="setAssetType('thai-stock')"
+          class="global-pill-btn"
+          [class.active]="selectedAssetType() === 'thai-stock'">
+          <span class="color-dot" style="background-color: #10b981;"></span>
+          Thai Stocks
+        </button>
+        <button
+          type="button"
+          (click)="setAssetType('mutual-fund')"
+          class="global-pill-btn"
+          [class.active]="selectedAssetType() === 'mutual-fund'">
+          <span class="color-dot" style="background-color: #f59e0b;"></span>
+          Mutual Funds
+        </button>
+        <button
+          type="button"
+          (click)="setAssetType('bond')"
+          class="global-pill-btn"
+          [class.active]="selectedAssetType() === 'bond'">
+          <span class="color-dot" style="background-color: #06b6d4;"></span>
+          Bonds
+        </button>
+      </div>
+
+      <!-- Historical Year Switcher -->
+      <div class="year-pills">
+        <button
+          type="button"
+          (click)="setYear('ALL')"
+          class="year-pill-btn"
+          [class.active]="selectedYear() === 'ALL'">
+          All Time
+        </button>
+        @for (yr of availableYears(); track yr) {
+          <button
+            type="button"
+            (click)="setYear(yr)"
+            class="year-pill-btn"
+            [class.active]="selectedYear() === yr">
+            {{ yr }}
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+
+  @if (loading() && !data()) {
+    <div class="div-summary-grid">
+      @for (i of [1,2,3,4,5]; track i) {
+        <div class="div-summary-card" style="opacity: 0.6; animation: pulse 1.5s infinite;">
+          <div class="div-summary-label">Loading...</div>
+          <div class="div-summary-value font-mono">--</div>
+        </div>
+      }
+    </div>
+  } @else {
+
+  <!-- 5 SUMMARY KPI CARDS -->
+  <div class="div-summary-grid">
+    <!-- Card 1: Net Dividends Received -->
+    <div class="div-summary-card">
+      <div class="div-summary-label">Net Dividends</div>
+      <div class="div-summary-value font-mono" style="color: var(--color-pl-positive);">
+        {{ activeNetTotal() | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+      </div>
+      <div class="div-summary-sub font-mono">
+        <span>Gross: {{ activeGrossTotal() | currency:displayCurrency():'symbol-narrow':'1.0-0' }}</span>
+        <span>WHT: {{ activeWhtTotal() | currency:displayCurrency():'symbol-narrow':'1.0-0' }}</span>
+      </div>
+    </div>
+
+    <!-- Card 2: Projected 12M Forward Income -->
+    <div class="div-summary-card">
+      <div class="div-summary-label">Projected 12M Income</div>
+      <div class="div-summary-value font-mono" style="color: var(--color-accent);">
+        {{ activeProjectedAnnualDividends() | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+      </div>
+      <div class="div-summary-sub font-mono">
+        ~{{ (activeProjectedAnnualDividends() / 12) | currency:displayCurrency():'symbol-narrow':'1.0-0' }}/mo estimated
+      </div>
+    </div>
+
+    <!-- Card 3: Portfolio Yield on Cost (YOC %) -->
+    <div class="div-summary-card div-summary-card-highlight">
+      <div class="div-summary-label">Yield on Cost (YOC)</div>
+      <div class="div-summary-value font-mono" style="color: var(--color-accent);">
+        {{ activeYieldOnCost() | number:'1.2-2' }}%
+      </div>
+      <div class="div-summary-sub font-mono">
+        Market Yield: {{ activeMarketYield() | number:'1.2-2' }}%
+      </div>
+    </div>
+
+    <!-- Card 4: Total Withholding Tax Paid -->
+    <div class="div-summary-card">
+      <div class="div-summary-label">Withholding Tax</div>
+      <div class="div-summary-value font-mono" style="color: var(--color-text-secondary);">
+        {{ activeWhtTotal() | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+      </div>
+      <div class="div-summary-sub font-mono">
+        Effective Rate: {{ activeEffectiveTaxRate() | number:'1.1-1' }}%
+      </div>
+    </div>
+
+    <!-- Card 5: Active Dividend Assets -->
+    <div class="div-summary-card">
+      <div class="div-summary-label">Paying Assets</div>
+      <div class="div-summary-value font-mono">
+        {{ filteredSymbolSummaries().length }}
+      </div>
+      <div class="div-summary-sub font-mono">
+        <span>{{ filteredRecords().length }} distributions</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MONTHLY & YEARLY CASHFLOW BAR CHART -->
+  <div class="div-chart-card">
+    <div class="div-card-header">
+      <div>
+        <h3 class="div-card-title">Monthly Cashflow Timeline</h3>
+        <p class="div-card-subtitle">Historical net dividend cash flow distribution by month</p>
+      </div>
+
+      <!-- Legend -->
+      <div class="div-legend">
+        <div class="legend-item">
+          <span class="color-dot" style="background-color: #3b82f6;"></span>
+          <span>U.S. Stocks</span>
+        </div>
+        <div class="legend-item">
+          <span class="color-dot" style="background-color: #10b981;"></span>
+          <span>Thai Stocks</span>
+        </div>
+        <div class="legend-item">
+          <span class="color-dot" style="background-color: #f59e0b;"></span>
+          <span>Mutual Funds</span>
+        </div>
+        <div class="legend-item">
+          <span class="color-dot" style="background-color: #06b6d4;"></span>
+          <span>Bonds</span>
+        </div>
+      </div>
+    </div>
+
+    @if (monthlyChartData().length > 0) {
+      <div class="chart-bars-wrap">
+        @for (m of monthlyChartData(); track m.yearMonth) {
+          <div class="chart-bar-col">
+            <!-- Tooltip -->
+            <div class="chart-tooltip">
+              <div class="tooltip-title">{{ m.yearMonth }}</div>
+              <div class="tooltip-val">{{ m.netAmount | currency:displayCurrency():'symbol-narrow':'1.2-2' }}</div>
+              @if (m.usAmount > 0) {
+                <div class="tooltip-sub" style="color: #3b82f6;">US: {{ m.usAmount | currency:displayCurrency():'symbol-narrow':'1.0-0' }}</div>
+              }
+              @if (m.thaiAmount > 0) {
+                <div class="tooltip-sub" style="color: #10b981;">TH: {{ m.thaiAmount | currency:displayCurrency():'symbol-narrow':'1.0-0' }}</div>
+              }
+              @if (m.fundAmount > 0) {
+                <div class="tooltip-sub" style="color: #f59e0b;">Fund: {{ m.fundAmount | currency:displayCurrency():'symbol-narrow':'1.0-0' }}</div>
+              }
+              @if (m.bondAmount > 0) {
+                <div class="tooltip-sub" style="color: #06b6d4;">Bond: {{ m.bondAmount | currency:displayCurrency():'symbol-narrow':'1.0-0' }}</div>
+              }
+            </div>
+
+            <!-- Segmented Bar Track -->
+            <div class="chart-bar-track-wrapper">
+              <div class="chart-bar-track" [style.height.%]="m.percentHeight">
+                @if (m.thaiAmount > 0) {
+                  <div class="chart-bar-seg" style="background-color: #10b981;" [style.height.%]="m.thaiPercent"></div>
+                }
+                @if (m.usAmount > 0) {
+                  <div class="chart-bar-seg" style="background-color: #3b82f6;" [style.height.%]="m.usPercent"></div>
+                }
+                @if (m.fundAmount > 0) {
+                  <div class="chart-bar-seg" style="background-color: #f59e0b;" [style.height.%]="m.fundPercent"></div>
+                }
+                @if (m.bondAmount > 0) {
+                  <div class="chart-bar-seg" style="background-color: #06b6d4;" [style.height.%]="m.bondPercent"></div>
+                }
+              </div>
+            </div>
+
+            <!-- Label -->
+            <span class="chart-bar-label">{{ m.yearMonth }}</span>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="empty-state-row">
+        No monthly dividend cash flows found for the selected timeframe.
+      </div>
+    }
+  </div>
+
+  <!-- ASSET TYPE BREAKDOWN CARDS -->
+  <div class="div-asset-grid">
+    @for (at of activeAssetTypeSummaries(); track at.assetType) {
+      <div
+        class="div-asset-card"
+        [class.active]="selectedAssetType() === at.assetType"
+        (click)="setAssetType(selectedAssetType() === at.assetType ? 'all' : at.assetType)">
+        <div class="asset-card-top">
+          <div class="asset-card-title">
+            <span class="color-dot" [style.background-color]="getAssetColor(at.assetType)"></span>
+            <span>{{ at.assetTypeLabel }}</span>
+          </div>
+          <span class="asset-badge font-mono">{{ at.percentageOfTotal | number:'1.1-1' }}%</span>
+        </div>
+
+        <div class="asset-card-value font-mono">
+          {{ at.totalNetDividends | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+        </div>
+
+        <div class="asset-card-sub font-mono">
+          <span>Gross: {{ at.totalGrossDividends | currency:displayCurrency():'symbol-narrow':'1.0-0' }}</span>
+          <span>{{ at.symbolCount }} symbols</span>
+        </div>
+
+        <div class="asset-card-metrics font-mono">
+          <span title="Yield on Cost (Projected 12M Income / Total Cost Basis)">YOC: <strong class="yoc-value">{{ (at.yieldOnCostPercent || 0) | number:'1.2-2' }}%</strong></span>
+          <span title="Market Dividend Yield (Projected 12M Income / Current Value)">Yield: {{ (at.currentYieldPercent || 0) | number:'1.2-2' }}%</span>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- SYMBOL INCOME & YIELD ON COST TABLE -->
+  <div class="div-table-card">
+    <div class="table-controls-row">
+      <div>
+        <h3 class="div-card-title">Holdings Dividend & Yield Breakdown</h3>
+        <p class="div-card-subtitle">Yield on Cost (YOC), Trailing 12M DPS, and forward projected income by asset</p>
+      </div>
+
+      <!-- Search Input with Autocomplete -->
+      <div class="search-input-wrap" (click)="$event.stopPropagation()">
+        <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          type="text"
+          placeholder="Filter symbols..."
+          [value]="searchQuery()"
+          (input)="onSearchInput($event)"
+          (focus)="onSearchFocus()"
+          (blur)="onSearchBlur()"
+          (keydown)="onSearchKeyDown($event)"
+          class="search-input"
+          autocomplete="off" />
+
+        @if (searchQuery().length > 0) {
+          <button
+            type="button"
+            class="search-clear-btn"
+            (click)="clearSearch()"
+            title="Clear search">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        }
+
+        <!-- Autocomplete Suggestions Dropdown Menu -->
+        @if (isAutocompleteOpen() && autocompleteSuggestions().length > 0) {
+          <div class="search-autocomplete-dropdown">
+            <div class="autocomplete-header">Matching Symbols</div>
+            @for (s of autocompleteSuggestions(); track s.symbol; let idx = $index) {
+              <div
+                class="autocomplete-item"
+                [class.highlighted]="highlightedIndex() === idx"
+                (mousedown)="selectAutocomplete(s)">
+                <div class="autocomplete-item-left">
+                  <app-symbol-icon [symbol]="s.symbol" [assetType]="s.assetType" [size]="'sm'"></app-symbol-icon>
+                  <div class="autocomplete-info">
+                    <div class="autocomplete-symbol-row">
+                      <span class="autocomplete-symbol">{{ s.displaySymbol }}</span>
+                      <span class="asset-badge" [ngClass]="getAssetTypeClass()(s.assetType, s.symbol)">
+                        {{ s.assetTypeLabel }}
+                      </span>
+                    </div>
+                    <div class="autocomplete-name">{{ s.name }}</div>
+                  </div>
+                </div>
+
+                @if (s.trailingDPS > 0) {
+                  <div class="autocomplete-item-right font-mono">
+                    <span class="autocomplete-dps-label">Trailing DPS</span>
+                    <span class="autocomplete-dps-val">{{ s.trailingDPS | number:'1.2-4' }} {{ s.currency }}</span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="div-table-wrapper">
+      <table class="div-table">
+        <thead>
+          <tr>
+            <th class="sortable" (click)="setSort('name')">Symbol & Asset</th>
+            <th class="sortable text-right" (click)="setSort('netDividends')">Net Received</th>
+            <th class="text-right">Trailing DPS</th>
+            <th class="sortable text-right" (click)="setSort('yoc')" style="color: var(--color-pl-positive);">Yield on Cost</th>
+            <th class="sortable text-right" (click)="setSort('currentYield')">Market Yield</th>
+            <th class="sortable text-right" (click)="setSort('projected')">Projected 12M</th>
+            <th class="text-center">Ledger</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (s of filteredSymbolSummaries(); track s.symbol) {
+            <tr>
+              <td>
+                <div class="symbol-col">
+                  <app-symbol-icon [symbol]="s.symbol" [assetType]="s.assetType" [size]="'sm'"></app-symbol-icon>
+                  <div>
+                    <div class="symbol-main">
+                      <span>{{ getDisplaySymbol()(s.symbol) }}</span>
+                      <span class="asset-badge" [ngClass]="getAssetTypeClass()(s.assetType, s.symbol)">
+                        {{ getAssetTypeLabel()(s.assetType, s.symbol) }}
+                      </span>
+                    </div>
+                    <div class="symbol-name-sub">
+                      {{ s.name || getSymbolName()(s.symbol) }}
+                    </div>
+                  </div>
+                </div>
+              </td>
+
+              <td class="text-right font-mono" style="color: var(--color-pl-positive); font-weight: 700;">
+                {{ s.convertedNetDividends | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+              </td>
+
+              <td class="text-right font-mono">
+                @if (s.trailingAnnualDPS > 0) {
+                  {{ s.trailingAnnualDPS | number:'1.2-4' }} {{ s.currency }}
+                } @else {
+                  <span class="empty-cell">—</span>
+                }
+              </td>
+
+              <td class="text-right">
+                @if (s.yieldOnCostPercent > 0) {
+                  <span class="yoc-pill font-mono">{{ s.yieldOnCostPercent | number:'1.2-2' }}%</span>
+                } @else {
+                  <span class="empty-cell">—</span>
+                }
+              </td>
+
+              <td class="text-right font-mono">
+                @if (s.currentYieldPercent > 0) {
+                  {{ s.currentYieldPercent | number:'1.2-2' }}%
+                } @else {
+                  <span class="empty-cell">—</span>
+                }
+              </td>
+
+              <td class="text-right font-mono" style="color: var(--color-accent); font-weight: 700;">
+                @if (s.projectedAnnualIncome > 0) {
+                  {{ s.projectedAnnualIncome | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+                } @else {
+                  <span class="empty-cell">—</span>
+                }
+              </td>
+
+              <td class="text-center">
+                <button
+                  type="button"
+                  class="btn-ledger-action font-mono"
+                  (click)="openHoldingLedger(s)"
+                  [title]="'View dividend ledger records for ' + (s.displaySymbol || getDisplaySymbol()(s.symbol))">
+                  <svg class="btn-ledger-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                  </svg>
+                  <span>Ledger</span>
+                  @if (getHoldingRecordsCount(s.symbol) > 0) {
+                    <span class="ledger-count-pill">{{ getHoldingRecordsCount(s.symbol) }}</span>
+                  }
+                </button>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="7" class="empty-state-row">
+                No dividend-paying symbols found matching your criteria.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile Holdings Cards (< 768px) -->
+    <div class="div-mobile-cards div-holdings-mobile-cards">
+      @for (s of filteredSymbolSummaries(); track s.symbol) {
+        <div class="div-mobile-card">
+          <div class="mobile-card-top">
+            <div class="mobile-card-identity">
+              <app-symbol-icon [symbol]="s.symbol" [assetType]="s.assetType" [size]="'sm'"></app-symbol-icon>
+              <div>
+                <div class="mobile-symbol-title">
+                  <span>{{ getDisplaySymbol()(s.symbol) }}</span>
+                  <span class="asset-badge" [ngClass]="getAssetTypeClass()(s.assetType, s.symbol)">
+                    {{ getAssetTypeLabel()(s.assetType, s.symbol) }}
+                  </span>
+                </div>
+                <div class="mobile-symbol-name">{{ s.name || getSymbolName()(s.symbol) }}</div>
+              </div>
+            </div>
+            <div class="mobile-card-primary-val font-mono">
+              {{ s.convertedNetDividends | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+            </div>
+          </div>
+
+          <div class="mobile-card-grid font-mono">
+            <div class="mobile-grid-item">
+              <span class="mobile-grid-label">Yield on Cost</span>
+              @if (s.yieldOnCostPercent > 0) {
+                <span class="yoc-pill font-mono">{{ s.yieldOnCostPercent | number:'1.2-2' }}%</span>
+              } @else {
+                <span class="empty-cell">—</span>
+              }
+            </div>
+            <div class="mobile-grid-item">
+              <span class="mobile-grid-label">Market Yield</span>
+              <span>{{ s.currentYieldPercent > 0 ? (s.currentYieldPercent | number:'1.2-2') + '%' : '—' }}</span>
+            </div>
+            <div class="mobile-grid-item">
+              <span class="mobile-grid-label">Trailing DPS</span>
+              <span>{{ s.trailingAnnualDPS > 0 ? (s.trailingAnnualDPS | number:'1.2-4') + ' ' + s.currency : '—' }}</span>
+            </div>
+            <div class="mobile-grid-item">
+              <span class="mobile-grid-label">Projected 12M</span>
+              <span style="color: var(--color-accent); font-weight: 700;">
+                {{ s.projectedAnnualIncome > 0 ? (s.projectedAnnualIncome | currency:displayCurrency():'symbol-narrow':'1.2-2') : '—' }}
+              </span>
+            </div>
+          </div>
+
+          <div class="mobile-card-actions">
+            <button
+              type="button"
+              class="btn-mobile-ledger font-mono"
+              (click)="openHoldingLedger(s)">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+              </svg>
+              <span>View Ledger ({{ getHoldingRecordsCount(s.symbol) }} records)</span>
+            </button>
+          </div>
+        </div>
+      } @empty {
+        <div class="empty-state-row">
+          No dividend-paying symbols found matching your criteria.
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- HISTORICAL DIVIDEND PAYOUT LEDGER -->
+  <div class="div-table-card">
+    <div class="div-card-header">
+      <div>
+        <h3 class="div-card-title">Dividend Distribution Ledger</h3>
+        <p class="div-card-subtitle">Chronological ledger of dividend distributions and tax withholdings</p>
+      </div>
+      <span class="asset-badge font-mono">{{ filteredRecords().length }} records</span>
+    </div>
+
+    <!-- Desktop Table View (>= 768px) -->
+    <div class="div-table-wrapper">
+      <table class="div-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Symbol</th>
+            <th>Asset Class</th>
+            <th class="text-right">Shares Held</th>
+            <th class="text-right">DPS</th>
+            <th class="text-right">Gross Amount</th>
+            <th class="text-right">Withholding Tax</th>
+            <th class="text-right">Net Received</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of paginatedRecords(); track r.id) {
+            <tr>
+              <td class="font-mono">
+                <div>{{ r.date }}</div>
+                @if (r.recordDate && r.recordDate !== r.date) {
+                  <div style="font-size: 0.7rem; color: var(--color-text-muted);" title="Entitlement snapshot date">
+                    snap: {{ r.recordDate }}
+                  </div>
+                }
+              </td>
+              <td style="font-weight: 700;">{{ getDisplaySymbol()(r.symbol) }}</td>
+              <td>
+                <span class="asset-badge" [ngClass]="getAssetTypeClass()(r.assetType, r.symbol)">
+                  {{ r.assetTypeLabel }}
+                </span>
+              </td>
+              <td class="text-right font-mono">{{ r.shares | number:'1.0-4' }}</td>
+              <td class="text-right font-mono">{{ r.dividendPerShare | number:'1.2-4' }} {{ r.currency }}</td>
+              <td class="text-right font-mono">{{ r.grossAmount | currency:r.currency:'symbol-narrow':'1.2-2' }}</td>
+              <td class="text-right font-mono" style="color: var(--color-pl-negative);">
+                -{{ r.withholdingTax | currency:r.currency:'symbol-narrow':'1.2-2' }} ({{ r.withholdingTaxRate }}%)
+              </td>
+              <td class="text-right font-mono" style="color: var(--color-pl-positive); font-weight: 700;">
+                {{ r.convertedNetAmount | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="8" class="empty-state-row">
+                No recorded dividend transactions found.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile Ledger Cards (< 768px) -->
+    <div class="div-mobile-cards div-ledger-mobile-cards">
+      @for (r of paginatedRecords(); track r.id) {
+        <div class="div-mobile-card">
+          <div class="mobile-card-top">
+            <div class="mobile-card-identity">
+              <span class="font-mono" style="font-size: 0.75rem; color: var(--color-text-muted);">{{ r.date }}</span>
+              <span class="mobile-symbol-title">{{ getDisplaySymbol()(r.symbol) }}</span>
+              <span class="asset-badge" [ngClass]="getAssetTypeClass()(r.assetType, r.symbol)">
+                {{ r.assetTypeLabel }}
+              </span>
+            </div>
+            <div class="mobile-card-primary-val font-mono" style="color: var(--color-pl-positive);">
+              {{ r.convertedNetAmount | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+            </div>
+          </div>
+
+          <div class="mobile-card-grid font-mono">
+            <div class="mobile-grid-item">
+              <span class="mobile-grid-label">Shares Held</span>
+              <span>{{ r.shares | number:'1.0-4' }}</span>
+            </div>
+            <div class="mobile-grid-item">
+              <span class="mobile-grid-label">DPS</span>
+              <span>{{ r.dividendPerShare | number:'1.2-4' }} {{ r.currency }}</span>
+            </div>
+            <div class="mobile-grid-item">
+              <span class="mobile-grid-label">Gross Amount</span>
+              <span>{{ r.grossAmount | currency:r.currency:'symbol-narrow':'1.2-2' }}</span>
+            </div>
+            <div class="mobile-grid-item">
+              <span class="mobile-grid-label">Withholding Tax</span>
+              <span style="color: var(--color-pl-negative);">
+                -{{ r.withholdingTax | currency:r.currency:'symbol-narrow':'1.2-2' }} ({{ r.withholdingTaxRate }}%)
+              </span>
+            </div>
+          </div>
+        </div>
+      } @empty {
+        <div class="empty-state-row">
+          No recorded dividend transactions found.
+        </div>
+      }
+    </div>
+
+    <!-- Pagination Bar -->
+    @if (totalRecords() > 0) {
+      <div class="tx-pagination-bar">
+        <div class="pagination-top-row">
+          <div class="pagination-info">
+            <span>Showing</span>
+            <span class="pagination-highlight">{{ startIndex() }}–{{ endIndex() }}</span>
+            <span>of</span>
+            <span class="pagination-highlight">{{ totalRecords() }}</span>
+            <span>distributions</span>
+          </div>
+
+          <div class="pagination-center">
+            <span class="page-size-label">Per page:</span>
+            <div class="page-size-select-wrap">
+              <select
+                class="page-size-select"
+                [value]="pageSize()"
+                (change)="onPageSizeChange($event)"
+              >
+                @for (size of pageSizeOptions; track size) {
+                  <option [value]="size" [selected]="size === pageSize()">{{ size }}</option>
+                }
+              </select>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="page-size-chevron">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="pagination-controls">
+          <!-- First Page -->
+          <button
+            class="pagination-btn pagination-btn-nav"
+            [disabled]="currentPage() === 1"
+            (click)="firstPage()"
+            type="button"
+            title="First Page"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+              <polyline points="11 17 6 12 11 7"></polyline>
+              <polyline points="18 17 13 12 18 7"></polyline>
+            </svg>
+          </button>
+
+          <!-- Prev Page -->
+          <button
+            class="pagination-btn pagination-btn-nav"
+            [disabled]="currentPage() === 1"
+            (click)="prevPage()"
+            type="button"
+            title="Previous Page"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+
+          <!-- Page Numbers -->
+          <div class="pagination-pages">
+            @for (pageNum of displayedPageNumbers(); track $index) {
+              @if (pageNum === '...') {
+                <span class="pagination-ellipsis">…</span>
+              } @else {
+                <button
+                  class="pagination-page-btn"
+                  [class.active]="currentPage() === pageNum"
+                  (click)="setPage(pageNum)"
+                  type="button"
+                >
+                  {{ pageNum }}
+                </button>
+              }
+            }
+          </div>
+
+          <!-- Next Page -->
+          <button
+            class="pagination-btn pagination-btn-nav"
+            [disabled]="currentPage() === totalPages()"
+            (click)="nextPage()"
+            type="button"
+            title="Next Page"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+
+          <!-- Last Page -->
+          <button
+            class="pagination-btn pagination-btn-last"
+            [disabled]="currentPage() === totalPages()"
+            (click)="lastPage()"
+            type="button"
+            title="Last Page"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+              <polyline points="13 17 18 12 13 7"></polyline>
+              <polyline points="6 17 11 12 6 7"></polyline>
+            </svg>
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- SEC MUTUAL FUND DISTRIBUTION POPUP MODAL -->
+  @if (selectedFundDistributions(); as fund) {
+    <div class="modal-backdrop" (click)="closeFundDistributions()">
+      <div class="modal-dialog" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div>
+            <span class="btn-sec-tag" style="margin-bottom: 0.25rem;">SEC Thailand v2 Feed</span>
+            <h4 class="modal-title">{{ fund.symbol }}</h4>
+            <p class="div-card-subtitle">{{ fund.name }}</p>
+          </div>
+          <button type="button" (click)="closeFundDistributions()" class="modal-close-btn">✕</button>
+        </div>
+
+        <div class="modal-table-wrap">
+          <table class="div-table">
+            <thead>
+              <tr>
+                <th>Payout Date</th>
+                <th>Book Close Date</th>
+                <th class="text-right">Dividend / Unit</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (d of fund.distributions; track d.dividendDate) {
+                <tr>
+                  <td class="font-mono">{{ d.dividendDate }}</td>
+                  <td class="font-mono" style="color: var(--color-text-muted);">{{ d.bookCloseDate }}</td>
+                  <td class="text-right font-mono" style="color: var(--color-pl-positive); font-weight: 700;">
+                    {{ d.dividendValue | number:'1.2-4' }} THB
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end;">
+          <button type="button" (click)="closeFundDistributions()" class="btn-export">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- HOLDING RELATED LEDGER POPUP MODAL -->
+  @if (selectedHoldingLedger(); as holding) {
+    <div class="modal-backdrop" (click)="closeHoldingLedger()">
+      <div class="modal-dialog modal-dialog-wide" (click)="$event.stopPropagation()">
+        <!-- Modal Header -->
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <div class="modal-symbol-row">
+              <app-symbol-icon [symbol]="holding.symbol" [assetType]="holding.assetType" [size]="'sm'"></app-symbol-icon>
+              <h4 class="modal-title">{{ holding.displaySymbol }}</h4>
+              <span class="asset-badge" [ngClass]="getAssetTypeClass()(holding.assetType, holding.symbol)">
+                {{ holding.assetTypeLabel }}
+              </span>
+            </div>
+            <p class="div-card-subtitle">{{ holding.name }}</p>
+          </div>
+          <button type="button" (click)="closeHoldingLedger()" class="modal-close-btn" title="Close modal">✕</button>
+        </div>
+
+        <!-- Modal Summary Banner -->
+        <div class="modal-summary-banner">
+          <div class="modal-summary-stat">
+            <span class="modal-stat-label">Net Received</span>
+            <span class="modal-stat-val font-mono" style="color: var(--color-pl-positive);">
+              {{ holding.totalNet | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+            </span>
+          </div>
+          <div class="modal-summary-stat">
+            <span class="modal-stat-label">Gross / WHT</span>
+            <span class="modal-stat-val font-mono" style="font-size: 0.8125rem;">
+              {{ holding.totalGross | currency:displayCurrency():'symbol-narrow':'1.0-0' }}
+              <span style="color: var(--color-pl-negative); font-size: 0.75rem;">(-{{ holding.totalWht | currency:displayCurrency():'symbol-narrow':'1.0-0' }})</span>
+            </span>
+          </div>
+          <div class="modal-summary-stat">
+            <span class="modal-stat-label">Distributions</span>
+            <span class="modal-stat-val font-mono">
+              {{ holding.records.length }} payouts
+            </span>
+          </div>
+        </div>
+
+        <!-- Modal Table / Ledger Records (Desktop & Tablet >= 640px) -->
+        <div class="modal-table-wrap modal-desktop-table">
+          <table class="div-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th class="text-right">Shares Held</th>
+                <th class="text-right">DPS</th>
+                <th class="text-right">Gross Amount</th>
+                <th class="text-right">Withholding Tax</th>
+                <th class="text-right">Net Received</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (r of holding.records; track r.id) {
+                <tr>
+                  <td class="font-mono">
+                    <div>{{ r.date }}</div>
+                    @if (r.recordDate && r.recordDate !== r.date) {
+                      <div style="font-size: 0.7rem; color: var(--color-text-muted);" title="Entitlement snapshot date">
+                        snap: {{ r.recordDate }}
+                      </div>
+                    }
+                  </td>
+                  <td class="text-right font-mono">{{ r.shares | number:'1.0-4' }}</td>
+                  <td class="text-right font-mono">{{ r.dividendPerShare | number:'1.2-4' }} {{ r.currency }}</td>
+                  <td class="text-right font-mono">{{ r.grossAmount | currency:r.currency:'symbol-narrow':'1.2-2' }}</td>
+                  <td class="text-right font-mono" style="color: var(--color-pl-negative);">
+                    -{{ r.withholdingTax | currency:r.currency:'symbol-narrow':'1.2-2' }} ({{ r.withholdingTaxRate }}%)
+                  </td>
+                  <td class="text-right font-mono" style="color: var(--color-pl-positive); font-weight: 700;">
+                    {{ r.convertedNetAmount | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="6" class="empty-state-row">
+                    No historical dividend distributions recorded for {{ holding.displaySymbol }}.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Mobile Cards (< 640px) -->
+        <div class="modal-mobile-cards">
+          @for (r of holding.records; track r.id) {
+            <div class="modal-record-card">
+              <div class="modal-record-top">
+                <span class="font-mono modal-record-date">{{ r.date }}</span>
+                <span class="font-mono modal-record-net" style="color: var(--color-pl-positive);">
+                  {{ r.convertedNetAmount | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+                </span>
+              </div>
+              <div class="modal-record-grid font-mono">
+                <div class="modal-record-item">
+                  <span class="modal-record-item-label">Shares Held</span>
+                  <span>{{ r.shares | number:'1.0-4' }}</span>
+                </div>
+                <div class="modal-record-item">
+                  <span class="modal-record-item-label">DPS</span>
+                  <span>{{ r.dividendPerShare | number:'1.2-4' }} {{ r.currency }}</span>
+                </div>
+                <div class="modal-record-item">
+                  <span class="modal-record-item-label">Gross</span>
+                  <span>{{ r.grossAmount | currency:r.currency:'symbol-narrow':'1.2-2' }}</span>
+                </div>
+                <div class="modal-record-item">
+                  <span class="modal-record-item-label">WHT</span>
+                  <span style="color: var(--color-pl-negative);">
+                    -{{ r.withholdingTax | currency:r.currency:'symbol-narrow':'1.2-2' }} ({{ r.withholdingTaxRate }}%)
+                  </span>
+                </div>
+              </div>
+            </div>
+          } @empty {
+            <div class="empty-state-row">
+              No historical dividend distributions recorded for {{ holding.displaySymbol }}.
+            </div>
+          }
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="modal-footer">
+          <div class="modal-footer-stats font-mono">
+            <span>Showing {{ holding.records.length }} recorded distributions</span>
+          </div>
+          <button type="button" (click)="closeHoldingLedger()" class="btn-modal-close">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+}
+
+</div>

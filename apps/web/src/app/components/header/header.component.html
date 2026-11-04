@@ -1,0 +1,346 @@
+<header class="header">
+  <div class="header-content">
+    <div class="header-left">
+      <div class="logo-mark">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="logo-icon">
+          <defs>
+            <linearGradient id="logo-crest-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#1661D8" />
+              <stop offset="100%" stop-color="#00B4D8" />
+            </linearGradient>
+          </defs>
+          <path
+            d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"
+            fill="url(#logo-crest-grad)"
+            fill-opacity="0.25"
+            stroke="url(#logo-crest-grad)"
+            stroke-width="1.8"
+          />
+          <path
+            d="M8 12.5l2.8 2.8 5.2-5.3"
+            stroke="#FFFFFF"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </div>
+      <div class="logo-text-group">
+        <div class="logo-title-row">
+          <h1 class="logo-text">Charlotte Wealth</h1>
+          <span class="logo-pro-badge">PRO</span>
+        </div>
+        <p class="logo-subtitle">Private Wealth &amp; FIFO Lot Engine</p>
+      </div>
+    </div>
+
+    <!-- Main Navigation Bar (Desktop Header Capsule / Mobile & Tablet Native Bottom Nav) -->
+    @if (!loading() && !error() && result()) {
+      <div class="header-center">
+        <nav class="view-toggle" id="view-toggle" aria-label="Main Navigation">
+          <button
+            class="view-toggle-btn"
+            [class.view-toggle-btn-active]="currentView() === 'dashboard'"
+            (click)="selectView('dashboard')"
+            id="view-toggle-dashboard"
+            type="button"
+            title="Executive Dashboard"
+            aria-label="Dashboard"
+          >
+            <span class="nav-btn-icon-wrapper">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="view-toggle-icon"
+              >
+                <rect x="3" y="3" width="7" height="9" rx="1.5"></rect>
+                <rect x="14" y="3" width="7" height="5" rx="1.5"></rect>
+                <rect x="14" y="12" width="7" height="9" rx="1.5"></rect>
+                <rect x="3" y="16" width="7" height="5" rx="1.5"></rect>
+              </svg>
+            </span>
+            <span class="view-toggle-label">Dashboard</span>
+          </button>
+
+          <button
+            class="view-toggle-btn"
+            [class.view-toggle-btn-active]="currentView() === 'holdings'"
+            (click)="selectView('holdings')"
+            id="view-toggle-holdings"
+            type="button"
+            title="Holdings & Lots"
+            aria-label="Holdings"
+          >
+            <span class="nav-btn-icon-wrapper">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="view-toggle-icon"
+              >
+                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                <polyline points="2 17 12 22 22 17"></polyline>
+                <polyline points="2 12 12 17 22 12"></polyline>
+              </svg>
+            </span>
+            <span class="view-toggle-label">Holdings</span>
+          </button>
+
+          <button
+            class="view-toggle-btn"
+            [class.view-toggle-btn-active]="
+              currentView() === 'analytics' ||
+              currentView() === 'allocation' ||
+              currentView() === 'performance'
+            "
+            (click)="selectView('analytics')"
+            id="view-toggle-analytics"
+            type="button"
+            title="Portfolio Analytics (Allocation & Performance)"
+            aria-label="Analytics"
+          >
+            <span class="nav-btn-icon-wrapper">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="view-toggle-icon"
+              >
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+                <path d="M21 12c0 4.97-4.03 9-9 9a9 9 0 0 1-8.5-6"></path>
+              </svg>
+            </span>
+            <span class="view-toggle-label">Analytics</span>
+          </button>
+
+          <button
+            class="view-toggle-btn"
+            [class.view-toggle-btn-active]="currentView() === 'dividends'"
+            (click)="selectView('dividends')"
+            id="view-toggle-dividends"
+            type="button"
+            title="Dividends & Yield"
+            aria-label="Dividends"
+          >
+            <span class="nav-btn-icon-wrapper">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="view-toggle-icon"
+              >
+                <path
+                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </span>
+            <span class="view-toggle-label">Dividends</span>
+          </button>
+
+          <button
+            class="view-toggle-btn"
+            [class.view-toggle-btn-active]="currentView() === 'transactions'"
+            (click)="selectView('transactions')"
+            id="view-toggle-transactions"
+            type="button"
+            title="Transactions History"
+            aria-label="Transactions"
+          >
+            <span class="nav-btn-icon-wrapper">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="view-toggle-icon"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 14 14"></polyline>
+              </svg>
+            </span>
+            <span class="view-toggle-label">Transactions</span>
+          </button>
+
+          <button
+            class="view-toggle-btn"
+            [class.view-toggle-btn-active]="currentView() === 'tools'"
+            (click)="selectView('tools')"
+            id="view-toggle-tools"
+            type="button"
+            title="Financial Tools & Simulators"
+            aria-label="Tools"
+          >
+            <span class="nav-btn-icon-wrapper">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="view-toggle-icon"
+              >
+                <rect x="4" y="2" width="16" height="20" rx="2"></rect>
+                <line x1="8" y1="6" x2="16" y2="6"></line>
+                <line x1="16" y1="14" x2="16" y2="18"></line>
+                <path d="M16 10h.01"></path>
+                <path d="M12 10h.01"></path>
+                <path d="M8 10h.01"></path>
+                <path d="M12 14h.01"></path>
+                <path d="M8 14h.01"></path>
+                <path d="M12 18h.01"></path>
+                <path d="M8 18h.01"></path>
+              </svg>
+            </span>
+            <span class="view-toggle-label">Tools</span>
+          </button>
+        </nav>
+      </div>
+    }
+
+    <div class="header-right">
+      @if (!loading() && !error() && result()) {
+        @if (hasRate()) {
+          <div
+            class="header-rate-badge desktop-only"
+            [title]="'Exchange Rate: 1 USD = ' + (exchangeRate() | number: '1.2-2') + ' THB'"
+          >
+            <span class="rate-badge-label">USD/THB</span>
+            <span class="rate-badge-val font-mono">{{ exchangeRate() | number: '1.2-2' }}</span>
+          </div>
+        }
+
+        <div class="currency-toggle" id="currency-toggle">
+          <button
+            class="currency-btn"
+            [class.currency-btn-active]="displayCurrency() === 'USD'"
+            (click)="currencyChange.emit('USD')"
+            id="currency-usd"
+          >
+            $
+          </button>
+          <button
+            class="currency-btn"
+            [class.currency-btn-active]="displayCurrency() === 'THB'"
+            (click)="currencyChange.emit('THB')"
+            id="currency-thb"
+          >
+            ฿
+          </button>
+        </div>
+      }
+      <button
+        class="privacy-toggle-btn"
+        [class.privacy-active]="privacyMode()"
+        (click)="privacyChange.emit()"
+        id="privacy-toggle-btn"
+        [title]="privacyMode() ? 'Show sensitive information' : 'Hide sensitive information'"
+        [attr.aria-label]="
+          privacyMode() ? 'Show sensitive information' : 'Hide sensitive information'
+        "
+        type="button"
+      >
+        @if (privacyMode()) {
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="privacy-icon"
+          >
+            <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path>
+            <path
+              d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"
+            ></path>
+            <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path>
+            <line x1="2" y1="2" x2="22" y2="22"></line>
+          </svg>
+        } @else {
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="privacy-icon"
+          >
+            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        }
+      </button>
+      <button
+        class="theme-toggle-btn"
+        (click)="themeChange.emit()"
+        id="theme-toggle-btn"
+        [title]="theme() === 'dark' ? 'Switch to Light Theme' : 'Switch to Dark Theme'"
+        [attr.aria-label]="theme() === 'dark' ? 'Switch to Light Theme' : 'Switch to Dark Theme'"
+        type="button"
+      >
+        @if (theme() === 'dark') {
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="theme-icon"
+          >
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2"></path>
+            <path d="M12 20v2"></path>
+            <path d="m4.93 4.93 1.41 1.41"></path>
+            <path d="m17.66 17.66 1.41 1.41"></path>
+            <path d="M2 12h2"></path>
+            <path d="M20 12h2"></path>
+            <path d="m6.34 17.66-1.41 1.41"></path>
+            <path d="m19.07 4.93-1.41 1.41"></path>
+          </svg>
+        } @else {
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="theme-icon"
+          >
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+          </svg>
+        }
+      </button>
+    </div>
+  </div>
+</header>

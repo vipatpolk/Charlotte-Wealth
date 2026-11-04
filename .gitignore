@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+*.tsbuildinfo
+.angular/
+
+# Build outputs
+dist/
+www/
+out/
+build/
+
+# Testing & Coverage
+coverage/
+target/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+test/appium/logs/
+.appium/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDEs
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*

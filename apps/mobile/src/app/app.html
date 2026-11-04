@@ -1,0 +1,596 @@
+<app-header
+  [loading]="loading()"
+  [error]="error()"
+  [result]="result()"
+  [portfolioData]="portfolioData()"
+  [dividendData]="dividendData()"
+  [hasRate]="hasRate()"
+  [exchangeRate]="exchangeRate()"
+  [currentView]="currentView()"
+  [displayCurrency]="displayCurrency()"
+  [theme]="theme()"
+  [privacyMode]="privacyMode()"
+  (viewChange)="setView($event)"
+  (currencyChange)="displayCurrency.set($event)"
+  (themeChange)="toggleTheme()"
+  (privacyChange)="togglePrivacyMode()"
+></app-header>
+
+<!-- Screen Loading Overlay (Hides contents while data is loading) -->
+@if (loading()) {
+  <div class="screen-loader" id="loading-state" role="status" aria-live="polite">
+    <div class="screen-loader-content">
+      <div class="screen-loader-brand">
+        <div class="screen-loader-logo-wrap">
+          <div class="screen-loader-glow"></div>
+          <div class="screen-loader-spinner">
+            <div class="spinner-ring"></div>
+            <div class="spinner-ring spinner-ring-inner"></div>
+          </div>
+          <div class="screen-loader-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              class="logo-icon-lg"
+            >
+              <defs>
+                <linearGradient id="loader-crest-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#1661D8" />
+                  <stop offset="100%" stop-color="#00B4D8" />
+                </linearGradient>
+              </defs>
+              <path
+                d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"
+                fill="url(#loader-crest-grad)"
+                fill-opacity="0.25"
+                stroke="url(#loader-crest-grad)"
+                stroke-width="1.8"
+              />
+              <path
+                d="M8 12.5l2.8 2.8 5.2-5.3"
+                stroke="#FFFFFF"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+        </div>
+        <div class="screen-loader-text-group">
+          <h2 class="screen-loader-title">Loading {{ activeTab().label }}</h2>
+          <p class="screen-loader-subtext">
+            @if (pricesLoading()) {
+              Fetching real-time market prices and currency rates…
+            } @else if (isAllTab()) {
+              Consolidating asset types and computing FIFO share lots…
+            } @else if (isClosedTab()) {
+              Calculating realized profits & losses across closed positions…
+            } @else {
+              Fetching transaction history and calculating FIFO lots…
+            }
+          </p>
+        </div>
+      </div>
+      <div class="screen-loader-progress">
+        <div class="screen-loader-bar"></div>
+      </div>
+    </div>
+  </div>
+}
+
+<main class="main-content">
+  <!-- Error State -->
+  @if (error()) {
+    <div class="error-state" id="error-state">
+      <div class="error-icon-wrapper">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="error-icon"
+        >
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </div>
+      <p class="error-title">Unable to load data</p>
+      <p class="error-message">{{ error() }}</p>
+      <button class="btn btn-primary" (click)="refresh()" id="retry-btn">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="btn-icon"
+        >
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        Retry
+      </button>
+    </div>
+  }
+
+  <!-- Data Loaded -->
+  @if (!loading() && !error() && result()) {
+    @if (currentView() === 'dashboard') {
+      @defer (on idle) {
+        <app-dashboard
+          [portfolioData]="portfolioData()"
+          [dividendData]="dividendData()"
+          [pricesMap]="prices()"
+          [displayCurrency]="displayCurrency()"
+          [exchangeRate]="exchangeRate()"
+          [hasRate]="hasRate()"
+          [privacyMode]="privacyMode()"
+          (navigateView)="setView($event)"
+          (symbolSelected)="openTransactionHistory($event)"
+          (toolSelected)="navigateToTool($event)"
+        ></app-dashboard>
+      } @placeholder {
+        <div class="screen-loader" style="position: static; min-height: 300px">
+          <div class="screen-loader-content">
+            <div class="screen-loader-spinner"><div class="spinner-ring"></div></div>
+          </div>
+        </div>
+      }
+    } @else if (currentView() === 'transactions') {
+      @defer (on idle) {
+        <app-transaction-history
+          [transactionSummaries]="result()?.transactionSummaries || []"
+          [openSummaries]="result()?.summaries || []"
+          [prices]="prices()"
+          [displayCurrency]="displayCurrency()"
+          [exchangeRate]="exchangeRate()"
+          [selectedSymbol]="selectedHistorySymbol()"
+          (symbolSelected)="selectedHistorySymbol.set($event)"
+          (backToHoldings)="openHoldingsView()"
+        ></app-transaction-history>
+      } @placeholder {
+        <div class="screen-loader" style="position: static; min-height: 300px">
+          <div class="screen-loader-content">
+            <div class="screen-loader-spinner"><div class="spinner-ring"></div></div>
+          </div>
+        </div>
+      }
+    } @else if (
+      currentView() === 'analytics' ||
+      currentView() === 'allocation' ||
+      currentView() === 'performance'
+    ) {
+      @defer (on idle) {
+        <app-analytics
+          [summaries]="result()?.summaries || []"
+          [closedSummaries]="result()?.closedSummaries || []"
+          [transactionSummaries]="result()?.transactionSummaries || []"
+          [rawTransactions]="result()?.rawTransactions || []"
+          [pricesMap]="prices()"
+          [displayCurrency]="displayCurrency()"
+          [exchangeRate]="exchangeRate()"
+          [hasRate]="hasRate()"
+          [activeSubTab]="analyticsSubTab()"
+          (subTabChange)="analyticsSubTab.set($event)"
+        ></app-analytics>
+      } @placeholder {
+        <div class="screen-loader" style="position: static; min-height: 300px">
+          <div class="screen-loader-content">
+            <div class="screen-loader-spinner"><div class="spinner-ring"></div></div>
+          </div>
+        </div>
+      }
+    } @else if (currentView() === 'dividends') {
+      @defer (on idle) {
+        <app-dividend
+          [data]="dividendData()"
+          [loading]="dividendLoading()"
+          [error]="error()"
+          [displayCurrency]="displayCurrency()"
+          [exchangeRate]="exchangeRate()"
+          [getSymbolColor]="getSymbolColorFn"
+          [getDisplaySymbol]="getDisplaySymbolFn"
+          [getSymbolName]="getSymbolNameFn"
+          [getAssetTypeClass]="getAssetTypeClassFn"
+          [getAssetTypeLabel]="getAssetTypeLabelFn"
+          (currencyChange)="displayCurrency.set($event)"
+          (refresh)="loadDividendData()"
+        ></app-dividend>
+      } @placeholder {
+        <div class="screen-loader" style="position: static; min-height: 300px">
+          <div class="screen-loader-content">
+            <div class="screen-loader-spinner"><div class="spinner-ring"></div></div>
+          </div>
+        </div>
+      }
+    } @else if (currentView() === 'tools') {
+      @defer (on idle) {
+        <app-tools
+          [portfolioPositions]="portfolioData()?.openPositions || []"
+          [portfolioSummary]="portfolioData()?.summary || null"
+          [pricesMap]="prices()"
+          [displayCurrency]="displayCurrency()"
+          [exchangeRate]="exchangeRate()"
+          [hasRate]="hasRate()"
+          [privacyMode]="privacyMode()"
+          [initialToolId]="selectedToolId()"
+        ></app-tools>
+      } @placeholder {
+        <div class="screen-loader" style="position: static; min-height: 300px">
+          <div class="screen-loader-content">
+            <div class="screen-loader-spinner"><div class="spinner-ring"></div></div>
+          </div>
+        </div>
+      }
+    } @else {
+      <!-- Executive Portfolio Hero Dashboard Card -->
+      <div class="portfolio-hero-card" id="portfolio-hero">
+        <div class="hero-header">
+          <div class="hero-badge">
+            <span class="live-dot"></span>
+            <span>PORTFOLIO OVERVIEW</span>
+          </div>
+          @if (hasRate()) {
+            <div class="hero-rate-pill">
+              <span class="hero-rate-label">USD/THB</span>
+              <span class="hero-rate-val font-mono">{{ exchangeRate() | number: '1.2-2' }}</span>
+            </div>
+          }
+        </div>
+
+        <div class="hero-main-row">
+          <div class="hero-value-group">
+            <span class="hero-label">Net Portfolio Value</span>
+            <div class="hero-val-stack">
+              <h2 class="hero-total-val privacy-mask font-mono">
+                {{
+                  (totalHoldingConverted() > 0 ? totalHoldingConverted() : totalCostConverted())
+                    | currency: dc() : 'symbol-narrow' : '1.2-2'
+                }}
+              </h2>
+              @if (displayCurrency() === 'THB' && hasRate() && exchangeRate() > 0) {
+                <span class="hero-sub-currency font-mono privacy-mask">
+                  ≈
+                  {{
+                    (totalHoldingConverted() > 0 ? totalHoldingConverted() : totalCostConverted()) /
+                      exchangeRate() | currency: 'USD' : 'symbol-narrow' : '1.2-2'
+                  }}
+                </span>
+              } @else if (displayCurrency() === 'USD' && hasRate() && exchangeRate() > 0) {
+                <span class="hero-sub-currency font-mono privacy-mask">
+                  ≈
+                  {{
+                    (totalHoldingConverted() > 0 ? totalHoldingConverted() : totalCostConverted()) *
+                      exchangeRate() | currency: 'THB' : 'symbol-narrow' : '1.2-2'
+                  }}
+                </span>
+              }
+            </div>
+          </div>
+          @if (totalPL() !== 0) {
+            <div
+              class="hero-return-badge"
+              [class.pl-positive]="totalPL() >= 0"
+              [class.pl-negative]="totalPL() < 0"
+            >
+              <span class="trend-icon">{{ totalPL() >= 0 ? '▲' : '▼' }}</span>
+              <span class="hero-return-pct font-mono"
+                >{{ totalPL() >= 0 ? '+' : '' }}{{ totalPLPercent() | number: '1.2-2' }}%</span
+              >
+              <span class="hero-return-amount font-mono"
+                >({{ totalPL() >= 0 ? '+' : ''
+                }}{{ totalPL() | currency: dc() : 'symbol-narrow' : '1.2-2' }})</span
+              >
+            </div>
+          }
+        </div>
+
+        <div class="hero-metrics-grid">
+          <div class="hero-metric-item">
+            <span class="hero-metric-label">Total Invested</span>
+            <span class="hero-metric-val privacy-mask font-mono">{{
+              totalCostConverted() | currency: dc() : 'symbol-narrow' : '1.2-2'
+            }}</span>
+          </div>
+          <div class="hero-metric-item">
+            <span class="hero-metric-label">Realized Return</span>
+            <span
+              class="hero-metric-val font-mono"
+              [class.pl-positive]="totalRealizedPLConverted() >= 0"
+              [class.pl-negative]="totalRealizedPLConverted() < 0"
+            >
+              {{ totalRealizedPLConverted() >= 0 ? '+' : ''
+              }}{{ totalRealizedPLConverted() | currency: dc() : 'symbol-narrow' : '1.2-2' }}
+              @if (totalRealizedPLConverted() !== 0) {
+                <span class="hero-metric-sub"
+                  >({{ totalRealizedPLPercent() >= 0 ? '+' : ''
+                  }}{{ totalRealizedPLPercent() | number: '1.2-2' }}%)</span
+                >
+              }
+            </span>
+          </div>
+          <div class="hero-metric-item">
+            <span class="hero-metric-label">Open Positions</span>
+            <span class="hero-metric-val"
+              >{{ filteredSummaries().length }}
+              {{ filteredSummaries().length === 1 ? 'Symbol' : 'Symbols' }}</span
+            >
+          </div>
+          <div class="hero-metric-item">
+            <span class="hero-metric-label">Total Lots</span>
+            <span class="hero-metric-val">{{ result()?.totalLots || 0 }} Lots</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Bar (Asset Filter Tabs with Counts) -->
+      <app-tab-bar
+        [currentView]="currentView()"
+        [tabs]="tabs"
+        [activeTab]="activeTab()"
+        [tabCounts]="tabCounts()"
+        [isTabDropdownOpen]="isTabDropdownOpen()"
+        (tabSelect)="selectTab($event)"
+        (toggleDropdown)="toggleTabDropdown()"
+      ></app-tab-bar>
+
+      <!-- Toolbar -->
+      <app-search-bar
+        [searchQuery]="searchQuery()"
+        [isSearchFocused]="isSearchFocused()"
+        [isSearchDropdownOpen]="isSearchDropdownOpen()"
+        [searchActiveIndex]="searchActiveIndex()"
+        [autocompleteSuggestions]="autocompleteSuggestions()"
+        [filteredSummariesCount]="filteredSummaries().length"
+        [filteredClosedSummariesCount]="filteredClosedSummaries().length"
+        [isClosedTab]="isClosedTab()"
+        [isAllTab]="isAllTab()"
+        [getAssetTypeClass]="getAssetTypeClassFn"
+        (searchInput)="onSearchInput($event)"
+        (searchFocus)="onSearchFocus()"
+        (searchKeydown)="onSearchKeydown($event)"
+        (clearSearch)="clearSearchQuery($event)"
+        (selectItem)="selectAutocompleteItem($event)"
+        (closeDropdown)="closeSearchDropdown()"
+        (refresh)="refresh()"
+        (expandAll)="expandAll()"
+        (collapseAll)="collapseAll()"
+        (setSearchActiveIndex)="searchActiveIndex.set($event)"
+      ></app-search-bar>
+
+      <app-filters
+        [isClosedTab]="isClosedTab()"
+        [closedAssetTypeOptions]="closedAssetTypeOptions()"
+        [selectedClosedAssetType]="selectedClosedAssetType()"
+        [isMobileFilterDropdownOpen]="isMobileFilterDropdownOpen()"
+        [sortOptions]="sortOptions()"
+        [sortField]="sortField()"
+        [sortDirection]="sortDirection()"
+        [isMobileSortDropdownOpen]="isMobileSortDropdownOpen()"
+        (toggleMobileFilter)="toggleMobileFilterDropdown()"
+        (setClosedAssetType)="setClosedAssetTypeFilter($event)"
+        (toggleMobileSort)="toggleMobileSortDropdown()"
+        (setSort)="setSort($event)"
+        (toggleSortDir)="toggleSortDirection()"
+      ></app-filters>
+
+      <!-- Price Loading Indicator -->
+      @if (pricesLoading()) {
+        <div class="price-loading-bar">
+          <div class="price-loading-bar-inner"></div>
+        </div>
+      }
+
+      <!-- ================= ALL POSITIONS VIEW (GROUPED SEPARATELY) ================= -->
+      @if (isAllTab()) {
+        <!-- Open Positions Section -->
+        <div class="section-divider">
+          <div class="section-title-wrap">
+            <div class="section-pill open-pill">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="section-icon"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              <span>Open Positions</span>
+            </div>
+            <span class="section-count"
+              >{{ filteredSummaries().length }}
+              {{ filteredSummaries().length === 1 ? 'symbol' : 'symbols' }}</span
+            >
+          </div>
+        </div>
+
+        @for (summary of filteredSummaries(); track summary.symbol) {
+          <ng-container
+            *ngTemplateOutlet="openCardTpl; context: { $implicit: summary }"
+          ></ng-container>
+        } @empty {
+          <div class="empty-state" style="padding: 2.5rem 1rem">
+            <p class="empty-text">No open positions match your search.</p>
+          </div>
+        }
+
+        <!-- Closed Positions Section -->
+        <div class="section-divider section-divider-closed">
+          <div class="section-title-wrap">
+            <div class="section-pill closed-pill">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="section-icon"
+              >
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+              <span>Closed Positions</span>
+            </div>
+            <span class="section-count"
+              >{{ filteredClosedSummaries().length }}
+              {{ filteredClosedSummaries().length === 1 ? 'symbol' : 'symbols' }}</span
+            >
+          </div>
+          @if (filteredClosedSummaries().length > 0 && totalRealizedPLConverted() !== 0) {
+            <div class="section-summary-stat">
+              <span class="section-stat-label">Realized P/L:</span>
+              <span
+                class="section-stat-val"
+                [class.pl-positive]="totalRealizedPLConverted() >= 0"
+                [class.pl-negative]="totalRealizedPLConverted() < 0"
+              >
+                {{ totalRealizedPLConverted() >= 0 ? '+' : ''
+                }}{{ totalRealizedPLConverted() | currency: dc() : 'symbol-narrow' : '1.2-2' }} ({{
+                  totalRealizedPLPercent() >= 0 ? '+' : ''
+                }}{{ totalRealizedPLPercent() | number: '1.2-2' }}%)
+              </span>
+            </div>
+          }
+        </div>
+
+        @for (summary of filteredClosedSummaries(); track summary.symbol) {
+          <ng-container
+            *ngTemplateOutlet="closedCardTpl; context: { $implicit: summary }"
+          ></ng-container>
+        } @empty {
+          <div class="empty-state" style="padding: 2.5rem 1rem">
+            <p class="empty-text">No closed positions match your search.</p>
+          </div>
+        }
+      } @else if (isClosedTab()) {
+        <!-- ================= CLOSED POSITIONS TAB VIEW ================= -->
+        @for (summary of filteredClosedSummaries(); track summary.symbol) {
+          <ng-container
+            *ngTemplateOutlet="closedCardTpl; context: { $implicit: summary }"
+          ></ng-container>
+        } @empty {
+          <div class="empty-state">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="empty-icon"
+            >
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              <line x1="8" y1="11" x2="14" y2="11"></line>
+            </svg>
+            <p class="empty-text">No closed positions match your search.</p>
+          </div>
+        }
+      } @else {
+        <!-- ================= OPEN POSITIONS TAB VIEW ================= -->
+        @for (summary of filteredSummaries(); track summary.symbol) {
+          <ng-container
+            *ngTemplateOutlet="openCardTpl; context: { $implicit: summary }"
+          ></ng-container>
+        } @empty {
+          <div class="empty-state">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="empty-icon"
+            >
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              <line x1="8" y1="11" x2="14" y2="11"></line>
+            </svg>
+            <p class="empty-text">No symbols match your search.</p>
+          </div>
+        }
+      }
+    }
+
+    <!-- ================= TEMPLATE: OPEN POSITION CARD ================= -->
+    <ng-template #openCardTpl let-summary>
+      <app-summary-card
+        [type]="'open'"
+        [summary]="summary"
+        [isAllTab]="isAllTab()"
+        [isClosedTab]="isClosedTab()"
+        [hasPriceData]="hasPriceData(summary.symbol)"
+        [pricesLoading]="pricesLoading()"
+        [isExpanded]="isExpanded(summary.symbol)"
+        (toggleExpand)="toggleExpand($event)"
+        (openHistory)="openTransactionHistory($event)"
+        [getSymbolColor]="getSymbolColorFn"
+        [getDisplaySymbol]="getDisplaySymbolFn"
+        [getSymbolName]="getSymbolNameFn"
+        [getAssetTypeClass]="getAssetTypeClassFn"
+        [getAssetTypeLabel]="getAssetTypeLabelFn"
+        [getQuantityFormat]="getQuantityFormatFn"
+        [getPriceFormat]="getPriceFormatFn"
+        [cx]="cxFn"
+        [dc]="dcFn"
+        [getCurrentPriceConverted]="getCurrentPriceConvertedFn"
+        [getHoldingValue]="getHoldingValueFn"
+        [getUnrealizedPL]="getUnrealizedPLFn"
+        [getUnrealizedPLPercent]="getUnrealizedPLPercentFn"
+        [getLotHoldingValue]="getLotHoldingValueFn"
+        [getLotUnrealizedPL]="getLotUnrealizedPLFn"
+      ></app-summary-card>
+    </ng-template>
+
+    <!-- ================= TEMPLATE: CLOSED POSITION CARD ================= -->
+    <ng-template #closedCardTpl let-summary>
+      <app-summary-card
+        [type]="'closed'"
+        [summary]="summary"
+        [isAllTab]="isAllTab()"
+        [isClosedTab]="isClosedTab()"
+        [hasPriceData]="hasPriceData(summary.symbol)"
+        [pricesLoading]="pricesLoading()"
+        [isExpanded]="isExpanded(summary.symbol)"
+        (toggleExpand)="toggleExpand($event)"
+        (openHistory)="openTransactionHistory($event)"
+        [getSymbolColor]="getSymbolColorFn"
+        [getDisplaySymbol]="getDisplaySymbolFn"
+        [getSymbolName]="getSymbolNameFn"
+        [getAssetTypeClass]="getAssetTypeClassFn"
+        [getAssetTypeLabel]="getAssetTypeLabelFn"
+        [getQuantityFormat]="getQuantityFormatFn"
+        [getPriceFormat]="getPriceFormatFn"
+        [cx]="cxFn"
+        [dc]="dcFn"
+        [getCurrentPriceConverted]="getCurrentPriceConvertedFn"
+        [getHoldingValue]="getHoldingValueFn"
+        [getUnrealizedPL]="getUnrealizedPLFn"
+        [getUnrealizedPLPercent]="getUnrealizedPLPercentFn"
+        [getLotHoldingValue]="getLotHoldingValueFn"
+        [getLotUnrealizedPL]="getLotUnrealizedPLFn"
+      ></app-summary-card>
+    </ng-template>
+  }
+</main>
+
+<footer class="footer">
+  <p>&copy; 2026 Charlotte Wealth &mdash; Investment Portfolio Tracker &amp; FIFO Engine</p>
+</footer>

@@ -1,0 +1,987 @@
+<div class="calculator-container" id="avg-cost-calculator">
+  <!-- ================= TOP TOOLBAR & SYMBOL SELECTION ================= -->
+  <div class="calc-header-card">
+    <div class="calc-header-main">
+      <div class="symbol-selector-wrap">
+        <label class="calc-label" for="symbol-search-input">Selected Asset / Symbol</label>
+        <div class="symbol-dropdown-container">
+          <div class="symbol-search-box" (click)="isDropdownOpen.set(!isDropdownOpen())">
+            @if (isCustomMode()) {
+              <div class="symbol-selected-badge custom-badge">
+                <span class="badge-tag">CUSTOM</span>
+                <span class="badge-name">{{ customSymbol() }}</span>
+              </div>
+            } @else if (hasSelectedSymbol() && positionSnapshot().symbol !== 'NONE') {
+              <div class="symbol-selected-badge" [style.background-color]="getSymbolColor(positionSnapshot().symbol) + '20'" [style.border-color]="getSymbolColor(positionSnapshot().symbol) + '50'">
+                <app-symbol-icon [symbol]="positionSnapshot().symbol" [assetType]="positionSnapshot().assetType" [size]="'sm'"></app-symbol-icon>
+                <span class="badge-tag" [style.color]="getSymbolColor(positionSnapshot().symbol)">{{ positionSnapshot().displaySymbol }}</span>
+                <span class="badge-name">{{ positionSnapshot().name }}</span>
+                <span class="badge-type" [ngClass]="getAssetTypeClass(positionSnapshot().assetType, positionSnapshot().symbol)">{{ positionSnapshot().assetTypeLabel }}</span>
+              </div>
+            } @else {
+              <span class="placeholder-text">Select symbol</span>
+            }
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dropdown-icon" [class.rotated]="isDropdownOpen()">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+
+          <!-- Dropdown Menu -->
+          @if (isDropdownOpen()) {
+            <div class="dropdown-backdrop" (click)="isDropdownOpen.set(false)"></div>
+            <div class="symbol-dropdown-menu">
+              <div class="dropdown-search-input-wrap">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-lens-icon">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input
+                  type="text"
+                  id="symbol-search-input"
+                  class="dropdown-search-input"
+                  placeholder="Search portfolio symbols…"
+                  [(ngModel)]="symbolSearchQuery"
+                  (click)="$event.stopPropagation()"
+                  autofocus
+                />
+              </div>
+
+              <div class="dropdown-options-list">
+                <button
+                  type="button"
+                  class="dropdown-option-item custom-option"
+                  [class.active]="isCustomMode()"
+                  (click)="enableCustomMode()"
+                >
+                  <div class="option-left">
+                    <span class="custom-icon-chip">⚡</span>
+                    <div>
+                      <div class="option-sym">Custom Simulation</div>
+                      <div class="option-name">Simulate any un-owned stock, crypto, or fund</div>
+                    </div>
+                  </div>
+                </button>
+
+                <div class="dropdown-section-title">Your Open Positions ({{ filteredSymbolOptions().length }})</div>
+
+                @for (opt of filteredSymbolOptions(); track opt.symbol) {
+                  <button
+                    type="button"
+                    class="dropdown-option-item"
+                    [class.active]="!isCustomMode() && selectedSymbol() === opt.symbol"
+                    (click)="selectSymbol(opt.symbol)"
+                  >
+                    <div class="option-left">
+                      <app-symbol-icon [symbol]="opt.symbol" [assetType]="opt.assetType" [size]="'sm'"></app-symbol-icon>
+                      <span class="opt-badge" [style.background-color]="opt.color + '25'" [style.color]="opt.color">
+                        {{ opt.displaySymbol }}
+                      </span>
+                      <div class="opt-info">
+                        <div class="option-sym">{{ opt.displaySymbol }} <span class="opt-name-sub">&bull; {{ opt.name }}</span></div>
+                        <div class="opt-meta">
+                          <span class="opt-shares privacy-mask">{{ opt.totalShares | number:getQuantityFormat(opt.symbol, opt.assetType) }} shares</span>
+                          <span class="opt-dot">&bull;</span>
+                          <span>Avg: {{ opt.averageCost | currency:opt.currency:'symbol-narrow':'1.2-4' }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="option-right">
+                      <span class="opt-mkt-price">{{ opt.currentPrice | currency:opt.currency:'symbol-narrow':'1.2-4' }}</span>
+                      <span class="opt-type-tag" [ngClass]="getAssetTypeClass(opt.assetType, opt.symbol)">{{ opt.assetTypeLabel }}</span>
+                    </div>
+                  </button>
+                } @empty {
+                  <div class="empty-search-notice">No matching symbols in portfolio</div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Mode Toggle Switcher -->
+      <div class="calc-mode-switcher">
+        <label class="calc-label">Calculator Mode</label>
+        <div class="mode-btn-group">
+          <button
+            type="button"
+            class="mode-btn"
+            [class.active]="mode() === 'forward'"
+            (click)="mode.set('forward')"
+            id="mode-forward-btn"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mode-icon"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+            <span>Scenario Simulation</span>
+          </button>
+          <button
+            type="button"
+            class="mode-btn"
+            [class.active]="mode() === 'reverse'"
+            (click)="mode.set('reverse')"
+            id="mode-reverse-btn"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mode-icon"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+            <span>Target Cost Solver</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Custom Mode Inputs Bar (If user toggled custom symbol) -->
+    @if (isCustomMode()) {
+      <div class="custom-inputs-banner">
+        <div class="custom-banner-title">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="banner-icon"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+          <span>Configure Hypothetical Position Initial State</span>
+        </div>
+        <div class="custom-grid">
+          <div class="input-field">
+            <label>Symbol Name</label>
+            <input type="text" class="form-control font-mono" [(ngModel)]="customSymbol" placeholder="e.g. AAPL" />
+          </div>
+          <div class="input-field">
+            <label>Currency</label>
+            <select class="form-control" [(ngModel)]="customCurrency">
+              <option value="USD">USD ($)</option>
+              <option value="THB">THB (฿)</option>
+            </select>
+          </div>
+          <div class="input-field">
+            <label>Current Shares</label>
+            <input type="number" step="any" min="0" class="form-control font-mono" [(ngModel)]="customShares" />
+          </div>
+          <div class="input-field">
+            <label>Current Avg Cost</label>
+            <input type="number" step="any" min="0" class="form-control font-mono" [(ngModel)]="customAvgCost" />
+          </div>
+          <div class="input-field">
+            <label>Current Market Price</label>
+            <input type="number" step="any" min="0" class="form-control font-mono" [(ngModel)]="customMarketPrice" />
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Current Position Snapshot Bar -->
+    <div class="position-snapshot-bar" [class.snapshot-empty]="!hasSelectedSymbol()">
+      <div class="snapshot-item">
+        <span class="snapshot-label">Current Shares</span>
+        <span class="snapshot-val font-mono privacy-mask">
+          @if (hasSelectedSymbol()) {
+            {{ positionSnapshot().totalShares | number:getQuantityFormat(positionSnapshot().symbol, positionSnapshot().assetType) }}
+          } @else {
+            &mdash;
+          }
+        </span>
+      </div>
+      <div class="snapshot-divider"></div>
+      <div class="snapshot-item">
+        <span class="snapshot-label">Avg Cost Basis</span>
+        <span class="snapshot-val font-mono">
+          @if (hasSelectedSymbol()) {
+            {{ positionSnapshot().averageCost | currency:positionSnapshot().currency:'symbol-narrow':'1.2-4' }}
+          } @else {
+            &mdash;
+          }
+        </span>
+      </div>
+      <div class="snapshot-divider"></div>
+      <div class="snapshot-item">
+        <span class="snapshot-label">Live Market Price</span>
+        <span class="snapshot-val font-mono highlight">
+          @if (hasSelectedSymbol()) {
+            {{ positionSnapshot().currentPrice | currency:positionSnapshot().currency:'symbol-narrow':'1.2-4' }}
+          } @else {
+            &mdash;
+          }
+        </span>
+      </div>
+      <div class="snapshot-divider"></div>
+      <div class="snapshot-item">
+        <span class="snapshot-label">Total Invested</span>
+        <span class="snapshot-val font-mono privacy-mask">
+          @if (hasSelectedSymbol()) {
+            {{ positionSnapshot().totalCost | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}
+          } @else {
+            &mdash;
+          }
+        </span>
+      </div>
+      <div class="snapshot-divider"></div>
+      <div class="snapshot-item snapshot-pl-item">
+        <span class="snapshot-label">Current Unrealized P/L</span>
+        @if (hasSelectedSymbol()) {
+          <span
+            class="snapshot-val font-mono"
+            [class.pl-positive]="positionSnapshot().unrealizedPL >= 0"
+            [class.pl-negative]="positionSnapshot().unrealizedPL < 0"
+          >
+            <span class="privacy-mask">{{ positionSnapshot().unrealizedPL >= 0 ? '+' : '' }}{{ positionSnapshot().unrealizedPL | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}</span>
+            <span class="pl-pct"> ({{ positionSnapshot().unrealizedPLPercent >= 0 ? '+' : '' }}{{ positionSnapshot().unrealizedPLPercent | number:'1.2-2' }}%)</span>
+          </span>
+        } @else {
+          <span class="snapshot-val font-mono text-muted">&mdash;</span>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Prompt Banner when no symbol is selected -->
+  @if (!hasSelectedSymbol()) {
+    <div class="select-symbol-prompt-banner">
+      <div class="prompt-banner-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="banner-svg-icon"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+      </div>
+      <div class="prompt-banner-content">
+        <h4 class="prompt-banner-title">Select a Symbol to Start Calculating</h4>
+        <p class="prompt-banner-text">Please choose an asset from your portfolio holdings above or click "Custom Simulation" to enable the calculator.</p>
+      </div>
+    </div>
+  }
+
+  <!-- ================= FORWARD SCENARIO SIMULATION MODE ================= -->
+  @if (mode() === 'forward') {
+    <div class="calc-main-layout" [class.calculator-disabled]="!hasSelectedSymbol()">
+      <!-- LEFT PANEL: SIMULATION CONTROLS -->
+      <div class="calc-panel left-panel">
+        <div class="panel-header">
+          <h3 class="panel-title">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="panel-icon"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            <span>Simulate Order</span>
+          </h3>
+          <div class="action-segmented-toggle">
+            <button
+              type="button"
+              class="action-btn buy-btn"
+              [class.active]="currentAction() === 'BUY'"
+              (click)="setAction('BUY')"
+              [disabled]="!hasSelectedSymbol()"
+              id="action-buy-btn"
+            >
+              + BUY (Average In)
+            </button>
+            <button
+              type="button"
+              class="action-btn sell-btn"
+              [class.active]="currentAction() === 'SELL'"
+              (click)="setAction('SELL')"
+              id="action-sell-btn"
+            >
+              - SELL (Trim / Exit)
+            </button>
+          </div>
+        </div>
+
+        <div class="form-body">
+          <!-- Input Mode Switcher: Shares vs Amount -->
+          <div class="form-group">
+            <div class="form-label-row">
+              <label>Order Dimension</label>
+              <div class="input-mode-toggle-group">
+                <button
+                  type="button"
+                  class="input-mode-pill"
+                  [class.active]="inputMode() === 'shares'"
+                  (click)="setInputMode('shares')"
+                  [disabled]="!hasSelectedSymbol()"
+                  id="mode-shares-pill"
+                >
+                  By Shares
+                </button>
+                <button
+                  type="button"
+                  class="input-mode-pill"
+                  [class.active]="inputMode() === 'amount'"
+                  (click)="setInputMode('amount')"
+                  [disabled]="!hasSelectedSymbol()"
+                  id="mode-amount-pill"
+                >
+                  By Amount ({{ positionSnapshot().currency }})
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mode 1: Input By Shares -->
+          @if (inputMode() === 'shares') {
+            <div class="form-group">
+              <div class="form-label-row">
+                <label for="input-shares">Shares to {{ currentAction() }}</label>
+                <span class="label-hint font-mono">
+                  &asymp; <span class="privacy-mask">{{ (inputShares() * inputPrice()) | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}</span>
+                </span>
+              </div>
+              <div class="input-with-addons">
+                <input
+                  type="number"
+                  id="input-shares"
+                  class="form-control font-mono main-input"
+                  step="any"
+                  min="0"
+                  [disabled]="!hasSelectedSymbol()"
+                  [ngModel]="inputShares()"
+                  (ngModelChange)="onSharesInput($event)"
+                  placeholder="Enter shares…"
+                />
+              </div>
+              <!-- Quick Share Multipliers -->
+              <div class="quick-chips-row">
+                <span class="chips-label">Quick:</span>
+                <button type="button" class="chip-btn" (click)="applyShareMultiplier(0.10)" [disabled]="!hasSelectedSymbol()">+10%</button>
+                <button type="button" class="chip-btn" (click)="applyShareMultiplier(0.25)" [disabled]="!hasSelectedSymbol()">+25%</button>
+                <button type="button" class="chip-btn" (click)="applyShareMultiplier(0.50)" [disabled]="!hasSelectedSymbol()">+50%</button>
+                <button type="button" class="chip-btn" (click)="applyShareMultiplier(1.0)" [disabled]="!hasSelectedSymbol()">2x (100%)</button>
+                @if (currentAction() === 'SELL') {
+                  <button type="button" class="chip-btn chip-max" (click)="applyMaxSellShares()" [disabled]="!hasSelectedSymbol()">Max Shares</button>
+                }
+              </div>
+            </div>
+          } @else {
+            <!-- Mode 2: Input By Amount -->
+            <div class="form-group">
+              <div class="form-label-row">
+                <label for="input-amount">Total Amount to {{ currentAction() }} ({{ positionSnapshot().currency }})</label>
+                <span class="label-hint font-mono">
+                  &asymp; <span class="privacy-mask">{{ inputShares() | number:getQuantityFormat(positionSnapshot().symbol, positionSnapshot().assetType) }} shares</span>
+                </span>
+              </div>
+              <div class="input-with-addons">
+                <input
+                  type="number"
+                  id="input-amount"
+                  class="form-control font-mono main-input"
+                  step="any"
+                  min="0"
+                  [disabled]="!hasSelectedSymbol()"
+                  [ngModel]="inputAmount()"
+                  (ngModelChange)="onAmountInput($event)"
+                  placeholder="Enter total amount…"
+                />
+              </div>
+              <!-- Quick Amount Chips -->
+              <div class="quick-chips-row">
+                <span class="chips-label">Amount:</span>
+                @if (positionSnapshot().currency === 'THB') {
+                  <button type="button" class="chip-btn" (click)="applyAmountAddition(5000)" [disabled]="!hasSelectedSymbol()">+฿5k</button>
+                  <button type="button" class="chip-btn" (click)="applyAmountAddition(10000)" [disabled]="!hasSelectedSymbol()">+฿10k</button>
+                  <button type="button" class="chip-btn" (click)="applyAmountAddition(50000)" [disabled]="!hasSelectedSymbol()">+฿50k</button>
+                  <button type="button" class="chip-btn" (click)="applyAmountAddition(100000)" [disabled]="!hasSelectedSymbol()">+฿100k</button>
+                } @else {
+                  <button type="button" class="chip-btn" (click)="applyAmountAddition(500)" [disabled]="!hasSelectedSymbol()">+$500</button>
+                  <button type="button" class="chip-btn" (click)="applyAmountAddition(1000)" [disabled]="!hasSelectedSymbol()">+$1k</button>
+                  <button type="button" class="chip-btn" (click)="applyAmountAddition(2500)" [disabled]="!hasSelectedSymbol()">+$2.5k</button>
+                  <button type="button" class="chip-btn" (click)="applyAmountAddition(5000)" [disabled]="!hasSelectedSymbol()">+$5k</button>
+                  <button type="button" class="chip-btn" (click)="applyAmountAddition(10000)" [disabled]="!hasSelectedSymbol()">+$10k</button>
+                }
+                <button type="button" class="chip-btn" (click)="applyAmountMultiplier(0.25)" [disabled]="!hasSelectedSymbol()">+25% Val</button>
+                <button type="button" class="chip-btn" (click)="applyAmountMultiplier(0.50)" [disabled]="!hasSelectedSymbol()">+50% Val</button>
+                @if (currentAction() === 'SELL') {
+                  <button type="button" class="chip-btn chip-max" (click)="applyMaxSellAmount()" [disabled]="!hasSelectedSymbol()">Max Amount</button>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Price Input & Price Chips -->
+          <div class="form-group">
+            <div class="form-label-row">
+              <label for="input-price">Simulated Execution Price ({{ positionSnapshot().currency }})</label>
+              <span class="label-hint">Per share</span>
+            </div>
+            <div class="input-with-addons">
+              <input
+                type="number"
+                id="input-price"
+                class="form-control font-mono main-input"
+                step="any"
+                min="0"
+                [disabled]="!hasSelectedSymbol()"
+                [ngModel]="inputPrice()"
+                (ngModelChange)="onPriceInput($event)"
+                placeholder="Enter execution price…"
+              />
+            </div>
+            <!-- Quick Price Adjustments -->
+            <div class="quick-chips-row">
+              <span class="chips-label">Price:</span>
+              <button type="button" class="chip-btn" (click)="applyMarketPrice()" [disabled]="!hasSelectedSymbol()">Market Price</button>
+              <button type="button" class="chip-btn chip-dip" (click)="applyPriceQuickDip(-5)" [disabled]="!hasSelectedSymbol()">-5% Dip</button>
+              <button type="button" class="chip-btn chip-dip" (click)="applyPriceQuickDip(-10)" [disabled]="!hasSelectedSymbol()">-10% Dip</button>
+              <button type="button" class="chip-btn chip-rally" (click)="applyPriceQuickDip(5)" [disabled]="!hasSelectedSymbol()">+5% Rally</button>
+            </div>
+          </div>
+
+          <!-- Fee / Commission Input -->
+          <div class="form-group">
+            <div class="form-label-row">
+              <label for="input-fee">Broker Fee / Commission (%)</label>
+              <span class="label-hint font-mono">{{ (inputShares() * inputPrice() * (inputFeePercent() / 100)) | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }} fee</span>
+            </div>
+            <input
+              type="number"
+              id="input-fee"
+              class="form-control font-mono"
+              step="0.001"
+              min="0"
+              [disabled]="!hasSelectedSymbol()"
+              [(ngModel)]="inputFeePercent"
+              placeholder="e.g. 0.157"
+            />
+          </div>
+
+          <!-- Primary Calculate Button -->
+          <div class="calc-action-bar">
+            <button
+              type="button"
+              class="btn-calculate"
+              (click)="calculate()"
+              [disabled]="isCalculating() || !hasSelectedSymbol() || inputShares() <= 0 || inputPrice() <= 0"
+              id="btn-calculate-simulation"
+            >
+              @if (isCalculating()) {
+                <div class="calc-spinner"></div>
+                <span>Calculating…</span>
+              } @else {
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon">
+                  <rect x="4" y="2" width="16" height="20" rx="2"></rect>
+                  <line x1="8" y1="6" x2="16" y2="6"></line>
+                  <line x1="16" y1="14" x2="16" y2="18"></line>
+                  <path d="M16 10h.01"></path><path d="M12 10h.01"></path><path d="M8 10h.01"></path>
+                  <path d="M12 14h.01"></path><path d="M8 14h.01"></path><path d="M12 18h.01"></path><path d="M8 18h.01"></path>
+                </svg>
+                <span>Calculate &amp; Refresh</span>
+              }
+            </button>
+          </div>
+
+          <!-- Add to Multi-Step Queue & Reset Buttons -->
+          <div class="step-actions-row">
+            <button
+              type="button"
+              class="btn-step-add"
+              (click)="addStepToQueue()"
+              [disabled]="inputShares() <= 0 || inputPrice() <= 0"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              <span>Add to Simulation Chain</span>
+            </button>
+            @if (queuedSteps().length > 0) {
+              <button type="button" class="btn-step-clear" (click)="clearAllSteps()">Clear Queue</button>
+            }
+          </div>
+
+          <!-- Queued Steps Chain List -->
+          @if (queuedSteps().length > 0) {
+            <div class="queued-steps-section">
+              <div class="queued-steps-title">
+                <span>Queued Orders ({{ queuedSteps().length }})</span>
+              </div>
+              <div class="queued-steps-list">
+                @for (step of queuedSteps(); track step.id; let idx = $index) {
+                  <div class="queued-step-item" [class.step-buy]="step.action === 'BUY'" [class.step-sell]="step.action === 'SELL'">
+                    <div class="step-num">#{{ idx + 1 }}</div>
+                    <div class="step-action-tag" [class.buy]="step.action === 'BUY'" [class.sell]="step.action === 'SELL'">
+                      {{ step.action }}
+                    </div>
+                    <div class="step-details font-mono">
+                      <span class="privacy-mask">{{ step.shares | number:getQuantityFormat(positionSnapshot().symbol, positionSnapshot().assetType) }} sh</span>
+                      <span>@ {{ step.price | currency:positionSnapshot().currency:'symbol-narrow':'1.2-4' }}</span>
+                      <span class="step-total privacy-mask">({{ step.totalCost | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }})</span>
+                    </div>
+                    <button type="button" class="btn-remove-step" (click)="removeQueuedStep(step.id)" title="Remove step">
+                      &times;
+                    </button>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL: SIMULATION RESULTS & COMPARISON -->
+      <div class="calc-panel right-panel">
+        <div class="panel-header">
+          <h3 class="panel-title">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="panel-icon"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            <span>Projected Impact & Cost Basis</span>
+          </h3>
+          <button
+            type="button"
+            class="btn-panel-refresh"
+            (click)="calculate()"
+            title="Refresh calculation results"
+            [disabled]="isCalculating()"
+            id="btn-refresh-results"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="panel-refresh-icon" [class.spinning]="isCalculating()"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+            <span>Calculate</span>
+          </button>
+        </div>
+
+        <!-- 4 Primary KPI Summary Cards -->
+        <div class="sim-kpi-grid">
+          <!-- Card 1: New Average Cost -->
+          <div class="sim-kpi-card highlight-card">
+            <span class="kpi-label">Projected Avg Cost</span>
+            <div class="kpi-main-val font-mono">
+              {{ simulationResult().simulated.averageCost | currency:positionSnapshot().currency:'symbol-narrow':'1.2-4' }}
+            </div>
+            <div
+              class="kpi-sub-val font-mono"
+              [class.pl-positive]="simulationResult().delta.averageCost < 0"
+              [class.pl-negative]="simulationResult().delta.averageCost > 0"
+            >
+              {{ simulationResult().delta.averageCost >= 0 ? '+' : '' }}{{ simulationResult().delta.averageCost | currency:positionSnapshot().currency:'symbol-narrow':'1.2-4' }}
+              ({{ simulationResult().delta.averageCostPercent >= 0 ? '+' : '' }}{{ simulationResult().delta.averageCostPercent | number:'1.2-2' }}%)
+            </div>
+          </div>
+
+          <!-- Card 2: New Total Shares -->
+          <div class="sim-kpi-card">
+            <span class="kpi-label">Total Shares</span>
+            <div class="kpi-main-val font-mono privacy-mask">
+              {{ simulationResult().simulated.totalShares | number:getQuantityFormat(positionSnapshot().symbol, positionSnapshot().assetType) }}
+            </div>
+            <div class="kpi-sub-val font-mono text-muted privacy-mask">
+              {{ simulationResult().delta.shares >= 0 ? '+' : '' }}{{ simulationResult().delta.shares | number:getQuantityFormat(positionSnapshot().symbol, positionSnapshot().assetType) }}
+              ({{ simulationResult().delta.sharesPercent >= 0 ? '+' : '' }}{{ simulationResult().delta.sharesPercent | number:'1.2-2' }}%)
+            </div>
+          </div>
+
+          <!-- Card 3: Capital Outlay / Proceeds -->
+          <div class="sim-kpi-card">
+            <span class="kpi-label">{{ simulationResult().simulated.totalOutlay >= simulationResult().simulated.totalProceeds ? 'Total Capital Required' : 'Net Proceeds Realized' }}</span>
+            <div class="kpi-main-val font-mono privacy-mask">
+              @if (simulationResult().simulated.totalOutlay >= simulationResult().simulated.totalProceeds) {
+                {{ simulationResult().simulated.totalOutlay | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}
+              } @else {
+                {{ simulationResult().simulated.totalProceeds | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}
+              }
+            </div>
+            <div class="kpi-sub-val font-mono text-muted">
+              Fees: <span class="privacy-mask">{{ simulationResult().simulated.totalFees | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}</span>
+            </div>
+          </div>
+
+          <!-- Card 4: New Unrealized P/L at Market Price -->
+          <div class="sim-kpi-card">
+            <span class="kpi-label">Projected Unrealized P/L</span>
+            <div
+              class="kpi-main-val font-mono"
+              [class.pl-positive]="simulationResult().simulated.unrealizedPL >= 0"
+              [class.pl-negative]="simulationResult().simulated.unrealizedPL < 0"
+            >
+              <span class="privacy-mask">{{ simulationResult().simulated.unrealizedPL >= 0 ? '+' : '' }}{{ simulationResult().simulated.unrealizedPL | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}</span>
+              <span class="pl-pct"> ({{ simulationResult().simulated.unrealizedPLPercent >= 0 ? '+' : '' }}{{ simulationResult().simulated.unrealizedPLPercent | number:'1.2-2' }}%)</span>
+            </div>
+            @if (simulationResult().simulated.realizedPL !== 0) {
+              <div class="kpi-sub-val font-mono" [class.pl-positive]="simulationResult().simulated.realizedPL > 0" [class.pl-negative]="simulationResult().simulated.realizedPL < 0">
+                Realized: <span class="privacy-mask">{{ simulationResult().simulated.realizedPL >= 0 ? '+' : '' }}{{ simulationResult().simulated.realizedPL | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}</span>
+              </div>
+            } @else {
+              <div class="kpi-sub-val font-mono text-muted">
+                Market: {{ simulationResult().simulated.currentPrice | currency:positionSnapshot().currency:'symbol-narrow':'1.2-4' }}
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Visual Cost Basis Shift Progress Gauge -->
+        <div class="gauge-card">
+          <div class="gauge-header">
+            <span class="gauge-title">Cost Basis Shift vs Current Market</span>
+            <span class="gauge-desc">
+              Breakeven Gap:
+              <strong [class.pl-positive]="simulationResult().delta.breakevenDistanceSimulated <= 0" [class.pl-negative]="simulationResult().delta.breakevenDistanceSimulated > 0">
+                {{ simulationResult().delta.breakevenDistanceSimulated >= 0 ? '+' : '' }}{{ simulationResult().delta.breakevenDistanceSimulated | number:'1.2-2' }}%
+              </strong>
+              (was {{ simulationResult().delta.breakevenDistanceInitial >= 0 ? '+' : '' }}{{ simulationResult().delta.breakevenDistanceInitial | number:'1.2-2' }}%)
+            </span>
+          </div>
+          <div class="shift-bar-container">
+            <div class="shift-bar-track">
+              <div class="shift-bar-fill" [style.width.%]="costShiftBarPercent()"></div>
+            </div>
+            <div class="shift-markers">
+              <span>Live Price: {{ positionSnapshot().currentPrice | currency:positionSnapshot().currency:'symbol-narrow':'1.2-4' }}</span>
+              <span>Projected: {{ simulationResult().simulated.averageCost | currency:positionSnapshot().currency:'symbol-narrow':'1.2-4' }}</span>
+              <span>Initial: {{ positionSnapshot().averageCost | currency:positionSnapshot().currency:'symbol-narrow':'1.2-4' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Before vs After Comparison Matrix (Desktop Table View) -->
+        <div class="comparison-table-wrap desktop-table-view">
+          <table class="comparison-table">
+            <thead>
+              <tr>
+                <th class="th-metric">Position Metric</th>
+                <th class="text-right th-val">Current Initial</th>
+                <th class="text-right th-val">Simulated Target</th>
+                <th class="text-right th-val">Net Change (&Delta;)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="metric-name font-medium">Avg Cost Basis / Share</td>
+                <td class="text-right font-mono">{{ simulationResult().initial.averageCost | currency:positionSnapshot().currency:'symbol-narrow':'1.2-4' }}</td>
+                <td class="text-right font-mono font-bold text-accent">{{ simulationResult().simulated.averageCost | currency:positionSnapshot().currency:'symbol-narrow':'1.2-4' }}</td>
+                <td class="text-right font-mono" [class.pl-positive]="simulationResult().delta.averageCost < 0" [class.pl-negative]="simulationResult().delta.averageCost > 0">
+                  {{ simulationResult().delta.averageCost >= 0 ? '+' : '' }}{{ simulationResult().delta.averageCost | currency:positionSnapshot().currency:'symbol-narrow':'1.2-4' }}
+                  <span class="pl-pct">({{ simulationResult().delta.averageCostPercent >= 0 ? '+' : '' }}{{ simulationResult().delta.averageCostPercent | number:'1.2-2' }}%)</span>
+                </td>
+              </tr>
+              <tr>
+                <td class="metric-name">Total Shares Held</td>
+                <td class="text-right font-mono privacy-mask">{{ simulationResult().initial.totalShares | number:getQuantityFormat(positionSnapshot().symbol, positionSnapshot().assetType) }}</td>
+                <td class="text-right font-mono font-bold privacy-mask">{{ simulationResult().simulated.totalShares | number:getQuantityFormat(positionSnapshot().symbol, positionSnapshot().assetType) }}</td>
+                <td class="text-right font-mono privacy-mask">
+                  {{ simulationResult().delta.shares >= 0 ? '+' : '' }}{{ simulationResult().delta.shares | number:getQuantityFormat(positionSnapshot().symbol, positionSnapshot().assetType) }}
+                </td>
+              </tr>
+              <tr>
+                <td class="metric-name">Total Invested Cost</td>
+                <td class="text-right font-mono privacy-mask">{{ simulationResult().initial.totalCost | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}</td>
+                <td class="text-right font-mono font-bold privacy-mask">{{ simulationResult().simulated.totalCost | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}</td>
+                <td class="text-right font-mono privacy-mask">
+                  {{ simulationResult().delta.totalCost >= 0 ? '+' : '' }}{{ simulationResult().delta.totalCost | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}
+                </td>
+              </tr>
+              <tr>
+                <td class="metric-name">Market Holding Value</td>
+                <td class="text-right font-mono privacy-mask">{{ simulationResult().initial.holdingValue | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}</td>
+                <td class="text-right font-mono font-bold privacy-mask">{{ simulationResult().simulated.holdingValue | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}</td>
+                <td class="text-right font-mono privacy-mask">
+                  {{ simulationResult().delta.holdingValue >= 0 ? '+' : '' }}{{ simulationResult().delta.holdingValue | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}
+                </td>
+              </tr>
+              <tr>
+                <td class="metric-name">Unrealized P/L at Live</td>
+                <td class="text-right font-mono" [class.pl-positive]="simulationResult().initial.unrealizedPL >= 0" [class.pl-negative]="simulationResult().initial.unrealizedPL < 0">
+                  <span class="privacy-mask">{{ simulationResult().initial.unrealizedPL >= 0 ? '+' : '' }}{{ simulationResult().initial.unrealizedPL | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}</span>
+                  <span class="pl-pct"> ({{ simulationResult().initial.unrealizedPLPercent >= 0 ? '+' : '' }}{{ simulationResult().initial.unrealizedPLPercent | number:'1.2-2' }}%)</span>
+                </td>
+                <td class="text-right font-mono font-bold" [class.pl-positive]="simulationResult().simulated.unrealizedPL >= 0" [class.pl-negative]="simulationResult().simulated.unrealizedPL < 0">
+                  <span class="privacy-mask">{{ simulationResult().simulated.unrealizedPL >= 0 ? '+' : '' }}{{ simulationResult().simulated.unrealizedPL | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}</span>
+                  <span class="pl-pct"> ({{ simulationResult().simulated.unrealizedPLPercent >= 0 ? '+' : '' }}{{ simulationResult().simulated.unrealizedPLPercent | number:'1.2-2' }}%)</span>
+                </td>
+                <td class="text-right font-mono" [class.pl-positive]="simulationResult().delta.unrealizedPL >= 0" [class.pl-negative]="simulationResult().delta.unrealizedPL < 0">
+                  <span class="privacy-mask">{{ simulationResult().delta.unrealizedPL >= 0 ? '+' : '' }}{{ simulationResult().delta.unrealizedPL | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}</span>
+                  <span class="pl-pct"> ({{ simulationResult().delta.unrealizedPLPercent >= 0 ? '+' : '' }}{{ simulationResult().delta.unrealizedPLPercent | number:'1.2-2' }}%)</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Before vs After Comparison (Mobile & Tablet Cards View) -->
+        <div class="comparison-cards-mobile mobile-tablet-view">
+          <!-- Card 1: Average Cost Basis -->
+          <div class="cmp-card highlight-card">
+            <div class="cmp-card-header">
+              <span class="cmp-metric-title">Average Cost Basis</span>
+              <span
+                class="cmp-delta-badge font-mono"
+                [class.pl-positive]="simulationResult().delta.averageCost < 0"
+                [class.pl-negative]="simulationResult().delta.averageCost > 0"
+              >
+                {{ simulationResult().delta.averageCost >= 0 ? '+' : '' }}{{ simulationResult().delta.averageCost | currency:positionSnapshot().currency:'symbol-narrow':'1.2-4' }}
+                <span class="pl-pct">({{ simulationResult().delta.averageCostPercent >= 0 ? '+' : '' }}{{ simulationResult().delta.averageCostPercent | number:'1.2-2' }}%)</span>
+              </span>
+            </div>
+            <div class="cmp-flow-row">
+              <div class="cmp-flow-col">
+                <span class="cmp-flow-label">Current</span>
+                <span class="cmp-flow-val font-mono">{{ simulationResult().initial.averageCost | currency:positionSnapshot().currency:'symbol-narrow':'1.2-4' }}</span>
+              </div>
+              <div class="cmp-flow-arrow">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="flow-icon"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              </div>
+              <div class="cmp-flow-col target-col">
+                <span class="cmp-flow-label">Simulated</span>
+                <span class="cmp-flow-val font-mono font-bold text-accent">{{ simulationResult().simulated.averageCost | currency:positionSnapshot().currency:'symbol-narrow':'1.2-4' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Total Shares Held -->
+          <div class="cmp-card">
+            <div class="cmp-card-header">
+              <span class="cmp-metric-title">Total Shares Held</span>
+              <span class="cmp-delta-badge font-mono privacy-mask">
+                {{ simulationResult().delta.shares >= 0 ? '+' : '' }}{{ simulationResult().delta.shares | number:getQuantityFormat(positionSnapshot().symbol, positionSnapshot().assetType) }} sh
+              </span>
+            </div>
+            <div class="cmp-flow-row">
+              <div class="cmp-flow-col">
+                <span class="cmp-flow-label">Current</span>
+                <span class="cmp-flow-val font-mono privacy-mask">{{ simulationResult().initial.totalShares | number:getQuantityFormat(positionSnapshot().symbol, positionSnapshot().assetType) }}</span>
+              </div>
+              <div class="cmp-flow-arrow">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="flow-icon"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              </div>
+              <div class="cmp-flow-col target-col">
+                <span class="cmp-flow-label">Simulated</span>
+                <span class="cmp-flow-val font-mono font-bold privacy-mask">{{ simulationResult().simulated.totalShares | number:getQuantityFormat(positionSnapshot().symbol, positionSnapshot().assetType) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 3: Total Invested Cost -->
+          <div class="cmp-card">
+            <div class="cmp-card-header">
+              <span class="cmp-metric-title">Total Invested Cost</span>
+              <span class="cmp-delta-badge font-mono privacy-mask">
+                {{ simulationResult().delta.totalCost >= 0 ? '+' : '' }}{{ simulationResult().delta.totalCost | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}
+              </span>
+            </div>
+            <div class="cmp-flow-row">
+              <div class="cmp-flow-col">
+                <span class="cmp-flow-label">Current</span>
+                <span class="cmp-flow-val font-mono privacy-mask">{{ simulationResult().initial.totalCost | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}</span>
+              </div>
+              <div class="cmp-flow-arrow">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="flow-icon"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              </div>
+              <div class="cmp-flow-col target-col">
+                <span class="cmp-flow-label">Simulated</span>
+                <span class="cmp-flow-val font-mono font-bold privacy-mask">{{ simulationResult().simulated.totalCost | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 4: Market Holding Value -->
+          <div class="cmp-card">
+            <div class="cmp-card-header">
+              <span class="cmp-metric-title">Market Holding Value</span>
+              <span class="cmp-delta-badge font-mono privacy-mask">
+                {{ simulationResult().delta.holdingValue >= 0 ? '+' : '' }}{{ simulationResult().delta.holdingValue | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}
+              </span>
+            </div>
+            <div class="cmp-flow-row">
+              <div class="cmp-flow-col">
+                <span class="cmp-flow-label">Current</span>
+                <span class="cmp-flow-val font-mono privacy-mask">{{ simulationResult().initial.holdingValue | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}</span>
+              </div>
+              <div class="cmp-flow-arrow">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="flow-icon"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              </div>
+              <div class="cmp-flow-col target-col">
+                <span class="cmp-flow-label">Simulated</span>
+                <span class="cmp-flow-val font-mono font-bold privacy-mask">{{ simulationResult().simulated.holdingValue | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 5: Unrealized P/L at Live Price -->
+          <div class="cmp-card pl-summary-card">
+            <div class="cmp-card-header">
+              <span class="cmp-metric-title">Unrealized P/L at Live</span>
+              <span
+                class="cmp-delta-badge font-mono"
+                [class.pl-positive]="simulationResult().delta.unrealizedPL >= 0"
+                [class.pl-negative]="simulationResult().delta.unrealizedPL < 0"
+              >
+                <span class="privacy-mask">{{ simulationResult().delta.unrealizedPL >= 0 ? '+' : '' }}{{ simulationResult().delta.unrealizedPL | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}</span>
+                <span class="pl-pct"> ({{ simulationResult().delta.unrealizedPLPercent >= 0 ? '+' : '' }}{{ simulationResult().delta.unrealizedPLPercent | number:'1.2-2' }}%)</span>
+              </span>
+            </div>
+            <div class="cmp-flow-row">
+              <div class="cmp-flow-col">
+                <span class="cmp-flow-label">Current</span>
+                <span
+                  class="cmp-flow-val font-mono"
+                  [class.pl-positive]="simulationResult().initial.unrealizedPL >= 0"
+                  [class.pl-negative]="simulationResult().initial.unrealizedPL < 0"
+                >
+                  <span class="privacy-mask">{{ simulationResult().initial.unrealizedPL >= 0 ? '+' : '' }}{{ simulationResult().initial.unrealizedPL | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}</span>
+                  <span class="pl-pct"> ({{ simulationResult().initial.unrealizedPLPercent >= 0 ? '+' : '' }}{{ simulationResult().initial.unrealizedPLPercent | number:'1.2-2' }}%)</span>
+                </span>
+              </div>
+              <div class="cmp-flow-arrow">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="flow-icon"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              </div>
+              <div class="cmp-flow-col target-col">
+                <span class="cmp-flow-label">Simulated</span>
+                <span
+                  class="cmp-flow-val font-mono font-bold"
+                  [class.pl-positive]="simulationResult().simulated.unrealizedPL >= 0"
+                  [class.pl-negative]="simulationResult().simulated.unrealizedPL < 0"
+                >
+                  <span class="privacy-mask">{{ simulationResult().simulated.unrealizedPL >= 0 ? '+' : '' }}{{ simulationResult().simulated.unrealizedPL | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}</span>
+                  <span class="pl-pct"> ({{ simulationResult().simulated.unrealizedPLPercent >= 0 ? '+' : '' }}{{ simulationResult().simulated.unrealizedPLPercent | number:'1.2-2' }}%)</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ================= REVERSE TARGET COST GOAL SOLVER ================= -->
+  @if (mode() === 'reverse') {
+    <div class="calc-main-layout" [class.calculator-disabled]="!hasSelectedSymbol()">
+      <!-- LEFT PANEL: SOLVER INPUTS -->
+      <div class="calc-panel left-panel">
+        <div class="panel-header">
+          <h3 class="panel-title">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="panel-icon"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+            <span>Target Cost Goal Parameters</span>
+          </h3>
+        </div>
+
+        <div class="form-body">
+          <p class="solver-help-text">
+            Specify your desired average cost target and expected purchase price. The solver computes the exact shares and capital required to reach that target.
+          </p>
+
+          <!-- Desired Average Cost Target Input -->
+          <div class="form-group">
+            <div class="form-label-row">
+              <label for="target-avg-cost">Desired Target Average Cost ({{ positionSnapshot().currency }})</label>
+              <span class="label-hint">Current: {{ positionSnapshot().averageCost | currency:positionSnapshot().currency:'symbol-narrow':'1.2-4' }}</span>
+            </div>
+            <input
+              type="number"
+              id="target-avg-cost"
+              class="form-control font-mono main-input"
+              step="any"
+              min="0"
+              [(ngModel)]="targetAvgCost"
+              [disabled]="!hasSelectedSymbol()"
+              placeholder="e.g. 130.00"
+            />
+          </div>
+
+          <!-- Purchase Price Input -->
+          <div class="form-group">
+            <div class="form-label-row">
+              <label for="target-buy-price">Expected Purchase Price ({{ positionSnapshot().currency }})</label>
+              <span class="label-hint">Market: {{ positionSnapshot().currentPrice | currency:positionSnapshot().currency:'symbol-narrow':'1.2-4' }}</span>
+            </div>
+            <input
+              type="number"
+              id="target-buy-price"
+              class="form-control font-mono main-input"
+              step="any"
+              min="0"
+              [(ngModel)]="targetBuyPrice"
+              [disabled]="!hasSelectedSymbol()"
+              placeholder="e.g. 110.00"
+            />
+            <div class="quick-chips-row">
+              <span class="chips-label">Price:</span>
+              <button type="button" class="chip-btn" (click)="targetBuyPrice.set(positionSnapshot().currentPrice)" [disabled]="!hasSelectedSymbol()">At Market</button>
+              <button type="button" class="chip-btn chip-dip" (click)="targetBuyPrice.set(positionSnapshot().currentPrice * 0.95)" [disabled]="!hasSelectedSymbol()">-5% Dip</button>
+              <button type="button" class="chip-btn chip-dip" (click)="targetBuyPrice.set(positionSnapshot().currentPrice * 0.90)" [disabled]="!hasSelectedSymbol()">-10% Dip</button>
+            </div>
+          </div>
+
+          <!-- Fee % -->
+          <div class="form-group">
+            <div class="form-label-row">
+              <label for="target-fee">Broker Fee (%)</label>
+            </div>
+            <input
+              type="number"
+              id="target-fee"
+              class="form-control font-mono"
+              step="0.001"
+              min="0"
+              [(ngModel)]="targetFeePercent"
+              [disabled]="!hasSelectedSymbol()"
+            />
+          </div>
+
+          <!-- Primary Solver Calculate Button -->
+          <div class="calc-action-bar">
+            <button
+              type="button"
+              class="btn-calculate"
+              (click)="calculate()"
+              [disabled]="isCalculating() || !hasSelectedSymbol()"
+              id="btn-calculate-solver"
+            >
+              @if (isCalculating()) {
+                <div class="calc-spinner"></div>
+                <span>Solving Target…</span>
+              } @else {
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon">
+                  <circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle>
+                </svg>
+                <span>Calculate Target Goal</span>
+              }
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL: SOLVER OUTPUTS -->
+      <div class="calc-panel right-panel">
+        <div class="panel-header">
+          <h3 class="panel-title">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="panel-icon"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+            <span>Goal Feasibility & Required Order</span>
+          </h3>
+        </div>
+
+        @if (reverseGoalResult().isValid) {
+          <div class="solver-result-container">
+            <div class="solver-hero-card">
+              <span class="solver-hero-label">Required Purchase Quantity</span>
+              <div class="solver-hero-val font-mono privacy-mask">
+                {{ reverseGoalResult().requiredShares | number:getQuantityFormat(positionSnapshot().symbol, positionSnapshot().assetType) }}
+                <span class="unit-text">shares</span>
+              </div>
+              <div class="solver-hero-sub">
+                To achieve target average cost of <strong>{{ reverseGoalResult().achievedAvgCost | currency:positionSnapshot().currency:'symbol-narrow':'1.2-4' }}</strong>
+              </div>
+            </div>
+
+            <div class="solver-breakdown-grid">
+              <div class="breakdown-item">
+                <span class="bd-label">Capital Required</span>
+                <span class="bd-val font-mono privacy-mask">{{ reverseGoalResult().requiredCapital | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}</span>
+              </div>
+              <div class="breakdown-item">
+                <span class="bd-label">Estimated Fees</span>
+                <span class="bd-val font-mono privacy-mask">{{ reverseGoalResult().feeAmount | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}</span>
+              </div>
+              <div class="breakdown-item">
+                <span class="bd-label">Total Cash Outlay</span>
+                <span class="bd-val font-mono font-bold text-accent privacy-mask">{{ reverseGoalResult().totalOutlay | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}</span>
+              </div>
+              <div class="breakdown-item">
+                <span class="bd-label">New Total Shares</span>
+                <span class="bd-val font-mono privacy-mask">{{ reverseGoalResult().newTotalShares | number:getQuantityFormat(positionSnapshot().symbol, positionSnapshot().assetType) }}</span>
+              </div>
+              <div class="breakdown-item">
+                <span class="bd-label">New Total Cost Basis</span>
+                <span class="bd-val font-mono privacy-mask">{{ reverseGoalResult().newTotalCost | currency:positionSnapshot().currency:'symbol-narrow':'1.2-2' }}</span>
+              </div>
+            </div>
+
+            <div class="solver-action-wrap">
+              <button type="button" class="btn-apply-solver" (click)="applyReverseGoalToSimulation()">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                <span>Apply to Forward Scenario Simulation</span>
+              </button>
+            </div>
+          </div>
+        } @else {
+          <div class="solver-error-state">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="solver-error-icon">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <h4 class="solver-error-title">Target Goal Infeasible</h4>
+            <p class="solver-error-desc">{{ reverseGoalResult().errorMessage }}</p>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

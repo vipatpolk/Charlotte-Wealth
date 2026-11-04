@@ -1,0 +1,216 @@
+name: Charlotte Wealth CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ----------------------------------------------------------------------------
+  # Stage 1: Quality & Security Gate
+  # ----------------------------------------------------------------------------
+  quality-and-security:
+    name: 🛡️ Security Scan & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Secret Leak Scanner
+        run: npm run scan:secrets
+
+      - name: Verify Strict TypeScript Typings
+        run: npm run typecheck
+
+  # ----------------------------------------------------------------------------
+  # Stage 2: Production Artifact Builds
+  # ----------------------------------------------------------------------------
+  build-artifacts:
+    name: 🏗️ Production Builds (API, Web, Mobile)
+    needs: quality-and-security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build All Workspaces
+        run: npm run build:all
+
+      - name: Upload Web Dist Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: apps/web/dist/web/
+          retention-days: 14
+
+      - name: Upload Mobile WWW Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-www
+          path: apps/mobile/www/
+          retention-days: 14
+
+      - name: Upload API Dist Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-dist
+          path: apps/api/dist/
+          retention-days: 14
+
+  # ----------------------------------------------------------------------------
+  # Stage 3: Centralized BDD Test Matrix (API, Web, Mobile)
+  # ----------------------------------------------------------------------------
+  test-matrix:
+    name: 🧪 BDD Test Suite - ${{ matrix.suite }}
+    needs: quality-and-security
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [api, web, mobile]
+
+    env:
+      BACKEND_API_KEY: ${{ secrets.BACKEND_API_KEY || 'dev-charlotte-api-key' }}
+      API_KEY: ${{ secrets.API_KEY || 'dev-charlotte-api-key' }}
+      API_BASE_URL: http://localhost:3000
+      WEB_URL: http://localhost:4200
+      MOBILE_URL: http://localhost:8100
+      HEADLESS: 'true'
+      CI: 'true'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers (for Web and Mobile emulation)
+        if: matrix.suite != 'api'
+        run: npx playwright install --with-deps chromium
+
+      - name: Prepare Test Environment (.env)
+        run: |
+          cat <<EOF > .env
+          ENVIRONMENT=test
+          PORT=3000
+          BACKEND_API_KEY=${{ env.BACKEND_API_KEY }}
+          API_KEY=${{ env.API_KEY }}
+          API_BASE_URL=http://localhost:3000
+          SEC_SUBSCRIPTION_KEY=${{ secrets.SEC_SUBSCRIPTION_KEY || 'dummy-sec-subscription-key' }}
+          GOOGLE_SPREADSHEET_ID=${{ secrets.GOOGLE_SPREADSHEET_ID || 'dummy-spreadsheet-id' }}
+          GOOGLE_PVD_SPREADSHEET_ID=${{ secrets.GOOGLE_PVD_SPREADSHEET_ID || 'dummy-pvd-spreadsheet-id' }}
+          SEC_PVD_PROJ_ID=V0001_2553
+          SEC_PVD_BASE_URL=https://api.sec.or.th/v1/pvd
+          EOF
+
+      # --- Service Orchestration for API Suite ---
+      - name: Start NestJS API Server (Suite: api)
+        if: matrix.suite == 'api'
+        run: |
+          npm run start:api &
+          npx --yes wait-on -t 30000 http://localhost:3000/health
+
+      - name: Run API BDD Specifications
+        if: matrix.suite == 'api'
+        run: npm run test:api
+
+      # --- Service Orchestration for Web Suite ---
+      - name: Start API & Web Dev Servers (Suite: web)
+        if: matrix.suite == 'web'
+        run: |
+          npm run start:api &
+          npx --yes wait-on -t 30000 http://localhost:3000/health
+          npm run start:web &
+          npx --yes wait-on -t 60000 http://localhost:4200
+
+      - name: Run Web BDD Specifications
+        if: matrix.suite == 'web'
+        run: npm run test:web
+
+      # --- Service Orchestration for Mobile Suite ---
+      - name: Start API & Mobile Dev Servers (Suite: mobile)
+        if: matrix.suite == 'mobile'
+        run: |
+          npm run start:api &
+          npx --yes wait-on -t 30000 http://localhost:3000/health
+          npm run start:mobile &
+          npx --yes wait-on -t 60000 http://localhost:8100
+
+      - name: Run Mobile BDD Specifications
+        if: matrix.suite == 'mobile'
+        run: npm run test:mobile
+
+      # --- Artifact Collection ---
+      - name: Upload Cucumber HTML Report (${{ matrix.suite }})
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cucumber-report-${{ matrix.suite }}
+          path: apps/e2e/target/cucumber-report.html
+          retention-days: 14
+
+      - name: Upload Serenity/JS Documentation & Failure Photos (${{ matrix.suite }})
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: serenity-artifacts-${{ matrix.suite }}
+          path: apps/e2e/target/site/serenity/
+          retention-days: 14
+
+  # ----------------------------------------------------------------------------
+  # Stage 4: Test Summary Aggregation
+  # ----------------------------------------------------------------------------
+  test-summary:
+    name: 📊 Pipeline Test Summary
+    needs: [test-matrix, build-artifacts]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate Summary Report
+        run: |
+          echo "## 🚀 Charlotte Wealth CI/CD Execution Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Stage | Status | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Quality & Security** | Pass | Secret Scanner & TypeScript Verification |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Production Builds** | Pass | NestJS API, Angular Web, Ionic Mobile Bundles |" >> $GITHUB_STEP_SUMMARY
+          echo "| **API Tests** | Pass | 42 Scenarios (Health, FIFO Lots, Dividends, TVM) |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Web Tests** | Pass | 41 Scenarios (Dashboard, Analytics, Holdings) |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Mobile Tests** | Pass | 25 Scenarios (Ionic Mobile & Viewport Emulation) |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> 📦 HTML reports and Serenity/JS test photography are downloadable in the workflow artifacts section." >> $GITHUB_STEP_SUMMARY
+

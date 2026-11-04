@@ -1,0 +1,497 @@
+@if (type() === 'open') {
+  <div class="symbol-card" [class.symbol-card-pvd]="summary().assetType === 'provident-fund'" [id]="'card-' + summary().symbol">
+    <!-- Card Header -->
+    <button class="card-header" (click)="toggleExpand.emit(summary().symbol)" [id]="'toggle-' + summary().symbol">
+      <div class="card-header-left">
+        <div class="symbol-identity-row">
+          <app-symbol-icon [symbol]="summary().symbol" [assetType]="summary().assetType" [size]="'md'"></app-symbol-icon>
+          <div class="symbol-identity">
+            <span class="symbol-badge" [style.background-color]="getSymbolColor()(summary().symbol) + '18'" [style.color]="getSymbolColor()(summary().symbol)" [style.border-color]="getSymbolColor()(summary().symbol) + '30'">
+              {{ getDisplaySymbol()(summary().symbol) }}
+            </span>
+            @if (getSymbolName()(summary().symbol, summary().name)) {
+              <span class="symbol-name" [title]="getSymbolName()(summary().symbol, summary().name)">{{ getSymbolName()(summary().symbol, summary().name) }}</span>
+            }
+          </div>
+        </div>
+
+        <div class="card-header-info">
+          @if (isAllTab() || isClosedTab()) {
+            <span [class]="getAssetTypeClass()(summary().assetType, summary().symbol)">
+              {{ getAssetTypeLabel()(summary().assetType, summary().symbol) }}
+            </span>
+          }
+          <span class="card-shares">{{ summary().totalShares | number:getQuantityFormat()(summary().symbol) }} {{ summary().assetType === 'provident-fund' || summary().assetType === 'mutual-fund' ? 'units' : 'shares' }}</span>
+          @if (summary().assetType !== 'provident-fund') {
+            <span class="card-lots-count">{{ summary().lots.length }} {{ summary().lots.length === 1 ? 'lot' : 'lots' }}</span>
+          }
+        </div>
+
+        @if (summary().assetType === 'provident-fund' && (summary().employeeShares || summary().employerShares || summary().lots?.length)) {
+          <!-- PVD Contribution Split Progress Bar in Header -->
+          <div class="card-pvd-split card-pvd-split-container" [title]="'Employee: ' + (getEmployeeShares(summary()) | number:'1.2-2') + ' (' + (getEmployeePercent(summary()) | number:'1.1-1') + '%) | Employer: ' + (getEmployerShares(summary()) | number:'1.2-2') + ' (' + (getEmployerPercent(summary()) | number:'1.1-1') + '%)'">
+            <div class="card-pvd-bar">
+              <div class="card-pvd-bar-segment pvd-segment-employee" [style.width.%]="getEmployeePercent(summary())"></div>
+              <div class="card-pvd-bar-segment pvd-segment-employer" [style.width.%]="getEmployerPercent(summary())"></div>
+            </div>
+            <div class="card-pvd-split-labels">
+              <span class="pvd-split-label pvd-label-employee">
+                <span class="pvd-split-dot dot-employee"></span>
+                Emp {{ getEmployeePercent(summary()) | number:'1.0-0' }}%
+              </span>
+              <span class="pvd-split-label pvd-label-employer">
+                <span class="pvd-split-dot dot-employer"></span>
+                Co {{ getEmployerPercent(summary()) | number:'1.0-0' }}%
+              </span>
+            </div>
+          </div>
+        } @else if (summary().assetType !== 'provident-fund') {
+          <button
+            class="card-trades-btn"
+            (click)="$event.stopPropagation(); openHistory.emit(summary().symbol)"
+            [id]="'btn-trades-' + summary().symbol"
+            [title]="'View transaction history for ' + summary().symbol"
+            type="button"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="trades-btn-icon">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 14 14"></polyline>
+            </svg>
+            <span>Transactions</span>
+          </button>
+        }
+      </div>
+      <div class="card-header-right">
+        <div class="card-metrics">
+            <div class="card-metric">
+              <span class="card-metric-label">Avg Cost</span>
+              <span class="card-metric-value">{{ cx()(summary().averageCost, summary().currency) | currency:dc()(summary().currency):'symbol-narrow':getPriceFormat()(summary().symbol) }}</span>
+            </div>
+            <div class="card-metric">
+              <span class="card-metric-label">Total Cost</span>
+              <span class="card-metric-value">{{ cx()(summary().totalCost, summary().currency) | currency:dc()(summary().currency):'symbol-narrow':'1.2-2' }}</span>
+            </div>
+            @if (hasPriceData()) {
+              <div class="card-metric">
+                <span class="card-metric-label">{{ summary().assetType === 'mutual-fund' || summary().assetType === 'provident-fund' ? 'NAV' : 'Mkt Price' }}</span>
+                <span class="card-metric-value">{{ getCurrentPriceConverted()(summary()) | currency:dc()(summary().currency):'symbol-narrow':getPriceFormat()(summary().symbol) }}</span>
+              </div>
+              <div class="card-metric">
+                <span class="card-metric-label">Holding Value</span>
+                <span class="card-metric-value">{{ cx()(getHoldingValue()(summary()), summary().currency) | currency:dc()(summary().currency):'symbol-narrow':'1.2-2' }}</span>
+              </div>
+              <div class="card-metric">
+                <span class="card-metric-label">P/L</span>
+                <span
+                  class="card-metric-value"
+                  [class.pl-positive]="getUnrealizedPL()(summary()) >= 0"
+                  [class.pl-negative]="getUnrealizedPL()(summary()) < 0"
+                >
+                  <span class="metric-amount">{{ getUnrealizedPL()(summary()) >= 0 ? '+' : '' }}{{ cx()(getUnrealizedPL()(summary()), summary().currency) | currency:dc()(summary().currency):'symbol-narrow':'1.2-2' }}</span>
+                  <span class="pl-percent">({{ getUnrealizedPL()(summary()) >= 0 ? '+' : '' }}{{ getUnrealizedPLPercent()(summary()) | number:'1.2-2' }}%)</span>
+                </span>
+              </div>
+            } @else if (pricesLoading()) {
+              <div class="card-metric">
+                <span class="card-metric-label">Holding Value</span>
+                <span class="card-metric-value card-metric-shimmer">Loading…</span>
+              </div>
+            } @else {
+              <div class="card-metric">
+                <span class="card-metric-label">{{ summary().assetType === 'mutual-fund' || summary().assetType === 'provident-fund' ? 'NAV' : 'Mkt Price' }}</span>
+                <span class="card-metric-value">-</span>
+              </div>
+              <div class="card-metric">
+                <span class="card-metric-label">Holding Value</span>
+                <span class="card-metric-value">-</span>
+              </div>
+            }
+        </div>
+        <svg
+          xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+          class="chevron-icon"
+          [class.chevron-expanded]="isExpanded()"
+        >
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </div>
+    </button>
+
+    <!-- Expanded Section -->
+    @if (isExpanded()) {
+      @if (summary().assetType === 'provident-fund') {
+        <!-- Dedicated Provident Fund Contribution Breakdown Cards -->
+        <div class="pvd-expanded-container">
+          <div class="pvd-expanded-header">
+            <div class="pvd-expanded-title-group">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pvd-title-icon">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+              </svg>
+              <span class="pvd-expanded-title">Contribution Breakdown</span>
+            </div>
+            <span class="pvd-snapshot-pill">Official Snapshot</span>
+          </div>
+
+          <!-- Dual Contribution Cards Grid -->
+          <div class="pvd-dual-cards">
+            <!-- Employee Card -->
+            <div class="pvd-contrib-card pvd-card-employee">
+              <div class="pvd-contrib-header">
+                <div class="pvd-contrib-title-row">
+                  <div class="pvd-icon-circle pvd-icon-emp">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pvd-card-svg">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 class="pvd-contrib-title">Employee Contribution</h4>
+                    <span class="pvd-contrib-subtitle">เงินสะสม</span>
+                  </div>
+                </div>
+                <span class="pvd-ratio-badge pvd-ratio-emp">
+                  {{ getEmployeePercent(summary()) | number:'1.1-1' }}%
+                </span>
+              </div>
+
+              <div class="pvd-contrib-value">
+                <span class="pvd-val-label">Accumulated Value</span>
+                <span class="pvd-val-amount">{{ cx()(getEmployeeValue(summary()), summary().currency) | currency:dc()(summary().currency):'symbol-narrow':'1.2-2' }}</span>
+              </div>
+
+              @if (summary().employeeContribution || summary().employeeEarnings) {
+                <div class="pvd-contrib-breakdown">
+                  <div class="pvd-breakdown-item">
+                    <span class="pvd-breakdown-label">Contribution (เงินสะสม)</span>
+                    <span class="pvd-breakdown-val">{{ cx()(getEmployeeContribution(summary()), summary().currency) | currency:dc()(summary().currency):'symbol-narrow':'1.2-2' }}</span>
+                  </div>
+                  <div class="pvd-breakdown-item">
+                    <span class="pvd-breakdown-label">Earnings (ผลประโยชน์)</span>
+                    <span class="pvd-breakdown-val pvd-earnings-val" [class.pl-positive]="getEmployeeEarnings(summary()) >= 0" [class.pl-negative]="getEmployeeEarnings(summary()) < 0">
+                      {{ getEmployeeEarnings(summary()) >= 0 ? '+' : '' }}{{ cx()(getEmployeeEarnings(summary()), summary().currency) | currency:dc()(summary().currency):'symbol-narrow':'1.2-2' }}
+                    </span>
+                  </div>
+                </div>
+              }
+
+              <div class="pvd-contrib-stats">
+                <div class="pvd-stat-item">
+                  <span class="pvd-stat-label">Units</span>
+                  <span class="pvd-stat-value">{{ getEmployeeShares(summary()) | number:getQuantityFormat()(summary().symbol) }}</span>
+                </div>
+                <div class="pvd-stat-divider"></div>
+                <div class="pvd-stat-item">
+                  <span class="pvd-stat-label">NAV</span>
+                  <span class="pvd-stat-value">{{ getCurrentPriceConverted()(summary()) | currency:dc()(summary().currency):'symbol-narrow':getPriceFormat()(summary().symbol) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Employer Card -->
+            <div class="pvd-contrib-card pvd-card-employer">
+              <div class="pvd-contrib-header">
+                <div class="pvd-contrib-title-row">
+                  <div class="pvd-icon-circle pvd-icon-co">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pvd-card-svg">
+                      <path d="M3 21h18"></path>
+                      <path d="M5 21V7l8-4v18"></path>
+                      <path d="M19 21V11l-6-4"></path>
+                      <path d="M9 9h1"></path>
+                      <path d="M9 13h1"></path>
+                      <path d="M9 17h1"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 class="pvd-contrib-title">Employer Matching</h4>
+                    <span class="pvd-contrib-subtitle">เงินสมทบ</span>
+                  </div>
+                </div>
+                <span class="pvd-ratio-badge pvd-ratio-co">
+                  {{ getEmployerPercent(summary()) | number:'1.1-1' }}%
+                </span>
+              </div>
+
+              <div class="pvd-contrib-value">
+                <span class="pvd-val-label">Matched Value</span>
+                <span class="pvd-val-amount">{{ cx()(getEmployerValue(summary()), summary().currency) | currency:dc()(summary().currency):'symbol-narrow':'1.2-2' }}</span>
+              </div>
+
+              @if (summary().employerMatching || summary().employerEarnings) {
+                <div class="pvd-contrib-breakdown">
+                  <div class="pvd-breakdown-item">
+                    <span class="pvd-breakdown-label">Matching (เงินสมทบ)</span>
+                    <span class="pvd-breakdown-val">{{ cx()(getEmployerMatching(summary()), summary().currency) | currency:dc()(summary().currency):'symbol-narrow':'1.2-2' }}</span>
+                  </div>
+                  <div class="pvd-breakdown-item">
+                    <span class="pvd-breakdown-label">Earnings (ผลประโยชน์)</span>
+                    <span class="pvd-breakdown-val pvd-earnings-val" [class.pl-positive]="getEmployerEarnings(summary()) >= 0" [class.pl-negative]="getEmployerEarnings(summary()) < 0">
+                      {{ getEmployerEarnings(summary()) >= 0 ? '+' : '' }}{{ cx()(getEmployerEarnings(summary()), summary().currency) | currency:dc()(summary().currency):'symbol-narrow':'1.2-2' }}
+                    </span>
+                  </div>
+                </div>
+              }
+
+              <div class="pvd-contrib-stats">
+                <div class="pvd-stat-item">
+                  <span class="pvd-stat-label">Units</span>
+                  <span class="pvd-stat-value">{{ getEmployerShares(summary()) | number:getQuantityFormat()(summary().symbol) }}</span>
+                </div>
+                <div class="pvd-stat-divider"></div>
+                <div class="pvd-stat-item">
+                  <span class="pvd-stat-label">NAV</span>
+                  <span class="pvd-stat-value">{{ getCurrentPriceConverted()(summary()) | currency:dc()(summary().currency):'symbol-narrow':getPriceFormat()(summary().symbol) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Total Fund Footer Banner -->
+          <div class="pvd-footer-banner">
+            <div class="pvd-footer-left">
+              <span class="pvd-footer-label">Fund Policy</span>
+              <span class="pvd-footer-name">{{ getSymbolName()(summary().symbol, summary().name) || summary().symbol }}</span>
+            </div>
+            <div class="pvd-footer-right">
+              <div class="pvd-footer-metric">
+                <span class="pvd-footer-m-label">Total Units</span>
+                <span class="pvd-footer-m-val">{{ summary().totalShares | number:getQuantityFormat()(summary().symbol) }}</span>
+              </div>
+              <div class="pvd-footer-divider"></div>
+              <div class="pvd-footer-metric">
+                <span class="pvd-footer-m-label">Total Cost</span>
+                <span class="pvd-footer-m-val">{{ cx()(summary().totalCost, summary().currency) | currency:dc()(summary().currency):'symbol-narrow':'1.2-2' }}</span>
+              </div>
+              @if (summary().unrealizedPL) {
+                <div class="pvd-footer-divider"></div>
+                <div class="pvd-footer-metric">
+                  <span class="pvd-footer-m-label">Total Earnings</span>
+                  <span class="pvd-footer-m-val pl-positive">+{{ cx()(summary().unrealizedPL, summary().currency) | currency:dc()(summary().currency):'symbol-narrow':'1.2-2' }}</span>
+                </div>
+              }
+              <div class="pvd-footer-divider"></div>
+              <div class="pvd-footer-metric">
+                <span class="pvd-footer-m-label">Total Value</span>
+                <span class="pvd-footer-m-val pvd-m-highlight">{{ cx()(getHoldingValue()(summary()), summary().currency) | currency:dc()(summary().currency):'symbol-narrow':'1.2-2' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      } @else {
+        <!-- Standard Lots Table for other asset classes -->
+        <div class="lots-container">
+          <div class="lots-table-wrapper">
+            <table class="lots-table">
+              <thead>
+                <tr>
+                  <th class="lot-col-num">#</th>
+                  <th class="lot-col-date">Purchase Date</th>
+                  <th class="lot-col-qty">Quantity</th>
+                  <th class="lot-col-cost">Cost Basis</th>
+                  <th class="lot-col-total">Total Cost</th>
+                  @if (hasPriceData()) {
+                    <th class="lot-col-total">Holding Value</th>
+                    <th class="lot-col-pl">P/L</th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (lot of summary().lots; track (lot.purchaseDate + '-' + lot.quantity + '-' + lot.costBasis); let i = $index) {
+                  <tr class="lot-row">
+                    <td class="lot-col-num">
+                      <span class="lot-number">{{ i + 1 }}</span>
+                    </td>
+                    <td class="lot-col-date">
+                      @if (lot.note) {
+                        <span class="lot-note-badge" [class.lot-note-employee]="lot.note.includes('Employee')" [class.lot-note-employer]="lot.note.includes('Employer')">
+                          {{ lot.note }}
+                        </span>
+                      } @else {
+                        {{ lot.purchaseDate | date:'MMM d, y' }}
+                      }
+                    </td>
+                    <td class="lot-col-qty">{{ lot.quantity | number:getQuantityFormat()(summary().symbol) }}</td>
+                    <td class="lot-col-cost">{{ cx()(lot.costBasis, summary().currency) | currency:dc()(summary().currency):'symbol-narrow':getPriceFormat()(summary().symbol) }}</td>
+                    <td class="lot-col-total">{{ cx()(lot.totalCost, summary().currency) | currency:dc()(summary().currency):'symbol-narrow':'1.2-2' }}</td>
+                    @if (hasPriceData()) {
+                      <td class="lot-col-total">{{ cx()(getLotHoldingValue()(lot, summary()), summary().currency) | currency:dc()(summary().currency):'symbol-narrow':'1.2-2' }}</td>
+                      <td class="lot-col-pl"
+                        [class.pl-positive]="getLotUnrealizedPL()(lot, summary()) >= 0"
+                        [class.pl-negative]="getLotUnrealizedPL()(lot, summary()) < 0"
+                      >
+                        {{ getLotUnrealizedPL()(lot, summary()) >= 0 ? '+' : '' }}{{ cx()(getLotUnrealizedPL()(lot, summary()), summary().currency) | currency:dc()(summary().currency):'symbol-narrow':'1.2-2' }}
+                      </td>
+                    }
+                  </tr>
+                }
+              </tbody>
+              <tfoot>
+                <tr class="lot-summary-row">
+                  <td colspan="2" class="lot-summary-label">Total</td>
+                  <td class="lot-col-qty lot-summary-value">{{ summary().totalShares | number:getQuantityFormat()(summary().symbol) }}</td>
+                  <td class="lot-col-cost lot-summary-value">{{ cx()(summary().averageCost, summary().currency) | currency:dc()(summary().currency):'symbol-narrow':getPriceFormat()(summary().symbol) }} avg</td>
+                  <td class="lot-col-total lot-summary-value">{{ cx()(summary().totalCost, summary().currency) | currency:dc()(summary().currency):'symbol-narrow':'1.2-2' }}</td>
+                  @if (hasPriceData()) {
+                    <td class="lot-col-total lot-summary-value">{{ cx()(getHoldingValue()(summary()), summary().currency) | currency:dc()(summary().currency):'symbol-narrow':'1.2-2' }}</td>
+                    <td class="lot-col-pl lot-summary-value"
+                      [class.pl-positive]="getUnrealizedPL()(summary()) >= 0"
+                      [class.pl-negative]="getUnrealizedPL()(summary()) < 0"
+                    >
+                      {{ getUnrealizedPL()(summary()) >= 0 ? '+' : '' }}{{ cx()(getUnrealizedPL()(summary()), summary().currency) | currency:dc()(summary().currency):'symbol-narrow':'1.2-2' }}
+                    </td>
+                  }
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      }
+    }
+  </div>
+} @else {
+  <div class="symbol-card" [id]="'card-' + summary().symbol">
+    <!-- Card Header -->
+    <button class="card-header" (click)="toggleExpand.emit(summary().symbol)" [id]="'toggle-' + summary().symbol">
+      <div class="card-header-left">
+        <div class="symbol-identity-row">
+          <app-symbol-icon [symbol]="summary().symbol" [assetType]="summary().assetType" [size]="'md'"></app-symbol-icon>
+          <div class="symbol-identity">
+            <span class="symbol-badge" [style.background-color]="getSymbolColor()(summary().symbol) + '18'" [style.color]="getSymbolColor()(summary().symbol)" [style.border-color]="getSymbolColor()(summary().symbol) + '30'">
+              {{ getDisplaySymbol()(summary().symbol) }}
+            </span>
+            @if (getSymbolName()(summary().symbol, summary().name)) {
+              <span class="symbol-name" [title]="getSymbolName()(summary().symbol, summary().name)">{{ getSymbolName()(summary().symbol, summary().name) }}</span>
+            }
+          </div>
+        </div>
+        <div class="card-header-info">
+          @if (isAllTab() || isClosedTab()) {
+            <span [class]="getAssetTypeClass()(summary().assetType, summary().symbol)">
+              {{ getAssetTypeLabel()(summary().assetType, summary().symbol) }}
+            </span>
+          }
+          <span class="card-shares">0 shares</span>
+          <span class="card-lots-count">{{ summary().lots.length }} closed {{ summary().lots.length === 1 ? 'lot' : 'lots' }}</span>
+        </div>
+
+        @if (summary().assetType !== 'provident-fund') {
+          <button
+            class="card-trades-btn"
+            (click)="$event.stopPropagation(); openHistory.emit(summary().symbol)"
+            [id]="'btn-trades-' + summary().symbol"
+            [title]="'View transaction history for ' + summary().symbol"
+            type="button"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="trades-btn-icon">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 14 14"></polyline>
+            </svg>
+            <span>Transactions</span>
+          </button>
+        }
+      </div>
+      <div class="card-header-right">
+        <div class="card-metrics">
+          <div class="card-metric">
+            <span class="card-metric-label">Avg Buy</span>
+            <span class="card-metric-value">{{ cx()(summary().averageBuyPrice, summary().currency) | currency:dc()(summary().currency):'symbol-narrow':getPriceFormat()(summary().symbol) }}</span>
+          </div>
+          <div class="card-metric">
+            <span class="card-metric-label">Avg Sell</span>
+            <span class="card-metric-value">{{ cx()(summary().averageSellPrice, summary().currency) | currency:dc()(summary().currency):'symbol-narrow':getPriceFormat()(summary().symbol) }}</span>
+          </div>
+          <div class="card-metric">
+            <span class="card-metric-label">Total Cost</span>
+            <span class="card-metric-value">{{ cx()(summary().totalCost, summary().currency) | currency:dc()(summary().currency):'symbol-narrow':'1.2-2' }}</span>
+          </div>
+          <div class="card-metric">
+            <span class="card-metric-label">Proceeds</span>
+            <span class="card-metric-value">{{ cx()(summary().totalProceeds, summary().currency) | currency:dc()(summary().currency):'symbol-narrow':'1.2-2' }}</span>
+          </div>
+          <div class="card-metric">
+            <span class="card-metric-label">Realized P/L</span>
+            <span
+              class="card-metric-value"
+              [class.pl-positive]="summary().realizedPL >= 0"
+              [class.pl-negative]="summary().realizedPL < 0"
+            >
+              <span class="metric-amount">{{ summary().realizedPL >= 0 ? '+' : '' }}{{ cx()(summary().realizedPL, summary().currency) | currency:dc()(summary().currency):'symbol-narrow':'1.2-2' }}</span>
+              <span class="pl-percent">({{ summary().realizedPLPercent >= 0 ? '+' : '' }}{{ summary().realizedPLPercent | number:'1.2-2' }}%)</span>
+            </span>
+          </div>
+        </div>
+        <svg
+          xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+          class="chevron-icon"
+          [class.chevron-expanded]="isExpanded()"
+        >
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </div>
+    </button>
+
+    <!-- Lot Details (Expandable) -->
+    @if (isExpanded()) {
+      <div class="lots-container">
+        <div class="lots-table-wrapper">
+          <table class="lots-table">
+            <thead>
+              <tr>
+                <th class="lot-col-num">#</th>
+                <th class="lot-col-date">Buy Date</th>
+                <th class="lot-col-date">Sell Date</th>
+                <th class="lot-col-qty">Quantity</th>
+                <th class="lot-col-cost">Buy Price</th>
+                <th class="lot-col-cost">Sell Price</th>
+                <th class="lot-col-total">Total Cost</th>
+                <th class="lot-col-total">Proceeds</th>
+                <th class="lot-col-pl">Realized P/L</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (lot of summary().lots; track (lot.purchaseDate + '-' + (lot.closeDate || '') + '-' + lot.quantity); let i = $index) {
+                <tr class="lot-row">
+                  <td class="lot-col-num">
+                    <span class="lot-number">{{ i + 1 }}</span>
+                  </td>
+                  <td class="lot-col-date">{{ lot.purchaseDate | date:'MMM d, y' }}</td>
+                  <td class="lot-col-date">{{ lot.closeDate | date:'MMM d, y' }}</td>
+                  <td class="lot-col-qty">{{ lot.quantity | number:getQuantityFormat()(summary().symbol) }}</td>
+                  <td class="lot-col-cost">{{ cx()(lot.costBasis, summary().currency) | currency:dc()(summary().currency):'symbol-narrow':getPriceFormat()(summary().symbol) }}</td>
+                  <td class="lot-col-cost">{{ cx()(lot.sellPrice, summary().currency) | currency:dc()(summary().currency):'symbol-narrow':getPriceFormat()(summary().symbol) }}</td>
+                  <td class="lot-col-total">{{ cx()(lot.totalCost, summary().currency) | currency:dc()(summary().currency):'symbol-narrow':'1.2-2' }}</td>
+                  <td class="lot-col-total">{{ cx()(lot.totalProceeds, summary().currency) | currency:dc()(summary().currency):'symbol-narrow':'1.2-2' }}</td>
+                  <td class="lot-col-pl"
+                    [class.pl-positive]="lot.realizedPL >= 0"
+                    [class.pl-negative]="lot.realizedPL < 0"
+                  >
+                    <span class="lot-amount">{{ lot.realizedPL >= 0 ? '+' : '' }}{{ cx()(lot.realizedPL, summary().currency) | currency:dc()(summary().currency):'symbol-narrow':'1.2-2' }}</span>
+                    <span class="pl-percent">({{ lot.realizedPLPercent >= 0 ? '+' : '' }}{{ lot.realizedPLPercent | number:'1.2-2' }}%)</span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr class="lot-summary-row">
+                <td colspan="3" class="lot-summary-label">Total</td>
+                <td class="lot-col-qty lot-summary-value">{{ summary().totalShares | number:getQuantityFormat()(summary().symbol) }}</td>
+                <td class="lot-col-cost lot-summary-value">{{ cx()(summary().averageBuyPrice, summary().currency) | currency:dc()(summary().currency):'symbol-narrow':getPriceFormat()(summary().symbol) }} avg</td>
+                <td class="lot-col-cost lot-summary-value">{{ cx()(summary().averageSellPrice, summary().currency) | currency:dc()(summary().currency):'symbol-narrow':getPriceFormat()(summary().symbol) }} avg</td>
+                <td class="lot-col-total lot-summary-value">{{ cx()(summary().totalCost, summary().currency) | currency:dc()(summary().currency):'symbol-narrow':'1.2-2' }}</td>
+                <td class="lot-col-total lot-summary-value">{{ cx()(summary().totalProceeds, summary().currency) | currency:dc()(summary().currency):'symbol-narrow':'1.2-2' }}</td>
+                <td class="lot-col-pl lot-summary-value"
+                  [class.pl-positive]="summary().realizedPL >= 0"
+                  [class.pl-negative]="summary().realizedPL < 0"
+                >
+                  {{ summary().realizedPL >= 0 ? '+' : '' }}{{ cx()(summary().realizedPL, summary().currency) | currency:dc()(summary().currency):'symbol-narrow':'1.2-2' }}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    }
+  </div>
+}

@@ -1,0 +1,145 @@
+<div class="tools-page-container" id="tools-page">
+  <!-- Tools Hub Hero Header -->
+  <div class="tools-hero-card">
+    <div class="tools-hero-left">
+      <div class="tools-hero-icon-wrap">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tools-hero-icon">
+          <rect x="4" y="2" width="16" height="20" rx="2"></rect>
+          <line x1="8" y1="6" x2="16" y2="6"></line>
+          <line x1="16" y1="14" x2="16" y2="18"></line>
+          <path d="M16 10h.01"></path>
+          <path d="M12 10h.01"></path>
+          <path d="M8 10h.01"></path>
+          <path d="M12 14h.01"></path>
+          <path d="M8 14h.01"></path>
+          <path d="M12 18h.01"></path>
+          <path d="M8 18h.01"></path>
+        </svg>
+      </div>
+      <div>
+        <div class="tools-badge">FINANCIAL TOOLKIT</div>
+        <h2 class="tools-hero-title">Investor Tools & Simulators</h2>
+        <p class="tools-hero-subtext">
+          Interactive modeling engines to simulate cost basis averaging, calculate position breakevens, and stress-test trade scenarios.
+        </p>
+      </div>
+    </div>
+
+    <!-- Desktop Horizontal Tools Tab Selector (>= 1024px) -->
+    <div class="tools-tab-selector desktop-only">
+      @for (tool of toolsList; track tool.id) {
+        <button
+          type="button"
+          class="tool-tab-btn"
+          [id]="'tool-tab-' + tool.id"
+          [class.active]="activeToolId() === tool.id"
+          [class.disabled]="!tool.isReady"
+          (click)="selectTool(tool.id)"
+          [title]="tool.isReady ? tool.title : tool.title + ' (Coming Soon)'"
+        >
+          @if (tool.id === 'avg-cost-calculator') {
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tool-tab-icon"><rect x="4" y="2" width="16" height="20" rx="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="18"></line><path d="M16 10h.01"></path><path d="M12 10h.01"></path><path d="M8 10h.01"></path><path d="M12 14h.01"></path><path d="M8 14h.01"></path><path d="M12 18h.01"></path><path d="M8 18h.01"></path></svg>
+          } @else if (tool.id === 'tvm-calculator') {
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tool-tab-icon"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+          } @else {
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tool-tab-icon"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
+          }
+          <span class="tool-tab-name">{{ tool.shortTitle }}</span>
+          @if (tool.badge && !tool.isReady) {
+            <span class="tool-tab-badge">{{ tool.badge }}</span>
+          }
+        </button>
+      }
+    </div>
+
+    <!-- Mobile & Tablet Tools Dropdown Selector (< 1024px) -->
+    <div class="tools-dropdown-wrapper mobile-tablet-only">
+      <div class="tools-dropdown-trigger" (click)="toggleDropdown()" id="tools-mobile-dropdown-trigger">
+        <div class="dropdown-trigger-left">
+          @if (activeTool().id === 'avg-cost-calculator') {
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tool-trigger-icon"><rect x="4" y="2" width="16" height="20" rx="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="18"></line><path d="M16 10h.01"></path><path d="M12 10h.01"></path><path d="M8 10h.01"></path><path d="M12 14h.01"></path><path d="M8 14h.01"></path><path d="M12 18h.01"></path><path d="M8 18h.01"></path></svg>
+          } @else if (activeTool().id === 'tvm-calculator') {
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tool-trigger-icon"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+          } @else {
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tool-trigger-icon"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
+          }
+          <div class="tool-trigger-info">
+            <span class="tool-trigger-label">Active Tool</span>
+            <span class="tool-trigger-title">{{ activeTool().title }}</span>
+          </div>
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dropdown-chevron" [class.rotated]="isDropdownOpen()">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </div>
+
+      <!-- Dropdown Menu List -->
+      @if (isDropdownOpen()) {
+        <div class="tools-dropdown-backdrop" (click)="closeDropdown()"></div>
+        <div class="tools-dropdown-menu">
+          @for (tool of toolsList; track tool.id) {
+            <button
+              type="button"
+              class="tools-dropdown-item"
+              [id]="'tool-dropdown-' + tool.id"
+              [class.active]="activeToolId() === tool.id"
+              [class.disabled]="!tool.isReady"
+              (click)="selectTool(tool.id)"
+            >
+              <div class="tool-item-icon-wrap">
+                @if (tool.id === 'avg-cost-calculator') {
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="item-icon"><rect x="4" y="2" width="16" height="20" rx="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="18"></line><path d="M16 10h.01"></path><path d="M12 10h.01"></path><path d="M8 10h.01"></path><path d="M12 14h.01"></path><path d="M8 14h.01"></path><path d="M12 18h.01"></path><path d="M8 18h.01"></path></svg>
+                } @else if (tool.id === 'tvm-calculator') {
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="item-icon"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+                } @else {
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="item-icon"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
+                }
+              </div>
+              <div class="tool-item-info">
+                <div class="tool-item-title-row">
+                  <span class="tool-item-title">{{ tool.title }}</span>
+                  @if (tool.badge) {
+                    <span class="tool-item-badge" [class.badge-ready]="tool.isReady">{{ tool.badge }}</span>
+                  }
+                </div>
+                <span class="tool-item-desc">{{ tool.description }}</span>
+              </div>
+            </button>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Active Tool View -->
+  @if (activeToolId() === 'avg-cost-calculator') {
+    <app-avg-cost-calculator
+      [portfolioPositions]="portfolioPositions()"
+      [pricesMap]="pricesMap()"
+      [displayCurrency]="displayCurrency()"
+      [exchangeRate]="exchangeRate()"
+      [hasRate]="hasRate()"
+      [privacyMode]="privacyMode()"
+      (symbolChange)="onSymbolChange($event)"
+    ></app-avg-cost-calculator>
+  } @else if (activeToolId() === 'tvm-calculator') {
+    <app-tvm-calculator
+      [portfolioPositions]="portfolioPositions()"
+      [portfolioSummary]="portfolioSummary()"
+      [displayCurrency]="displayCurrency()"
+      [exchangeRate]="exchangeRate()"
+      [hasRate]="hasRate()"
+      [privacyMode]="privacyMode()"
+    ></app-tvm-calculator>
+  } @else if (activeToolId() === 'rebalance-planner') {
+    <app-rebalance-calculator
+      [portfolioPositions]="portfolioPositions()"
+      [pricesMap]="pricesMap()"
+      [displayCurrency]="displayCurrency()"
+      [exchangeRate]="exchangeRate()"
+      [hasRate]="hasRate()"
+      [privacyMode]="privacyMode()"
+    ></app-rebalance-calculator>
+  }
+</div>
+

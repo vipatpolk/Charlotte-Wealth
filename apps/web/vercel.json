@@ -1,0 +1,66 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "angular",
+  "buildCommand": "ng build",
+  "outputDirectory": "dist/web/browser",
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/api/backend/:path*",
+      "destination": "https://api.charlotte-wealth.com/:path*"
+    },
+    {
+      "source": "/portfolio/:path*",
+      "destination": "https://api.charlotte-wealth.com/portfolio/:path*"
+    },
+    {
+      "source": "/share-lot/:path*",
+      "destination": "https://api.charlotte-wealth.com/share-lot/:path*"
+    },
+    {
+      "source": "/price/:path*",
+      "destination": "https://api.charlotte-wealth.com/price/:path*"
+    },
+    {
+      "source": "/nav/:path*",
+      "destination": "https://api.charlotte-wealth.com/nav/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    },
+    {
+      "source": "/(chunk-.*\\.js|main-.*\\.js|styles-.*\\.css)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ]
+}
+

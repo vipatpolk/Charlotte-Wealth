@@ -1,0 +1,27 @@
+{
+  "/api/backend": {
+    "target": "http://127.0.0.1:3000",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/portfolio": {
+    "target": "http://127.0.0.1:3000",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/share-lot": {
+    "target": "http://127.0.0.1:3000",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/price": {
+    "target": "http://127.0.0.1:3000",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/nav": {
+    "target": "http://127.0.0.1:3000",
+    "secure": false,
+    "changeOrigin": true
+  }
+}

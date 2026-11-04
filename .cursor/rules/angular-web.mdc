@@ -1,0 +1,14 @@
+---
+description: Angular Web Application Rules (apps/web)
+globs: apps/web/**/*
+---
+
+# Angular Web Application Guidelines
+
+- **Tech Stack**: Angular 21, Tailwind CSS v4, Signals.
+- **Port**: Default dev server is `http://localhost:4200`.
+- **Standalone Architecture**: Always use Standalone Components; never introduce `NgModule`.
+- **State Management**: Use Angular Signals (`signal()`, `computed()`) for reactive state.
+- **Styling**: Tailwind CSS v4 directives live in `src/styles.css`. Maintain luxury dark-mode aesthetics for private wealth management.
+- **Build command**: `npm run build:web`
+

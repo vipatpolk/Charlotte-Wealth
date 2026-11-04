@@ -1,0 +1,23 @@
+---
+description: Centralized E2E Testing Guidelines (apps/e2e)
+globs: apps/e2e/**/*
+---
+
+# Centralized Testing Guidelines
+
+- **Workspace**: All integration, E2E, and mobile test automation is centralized in `apps/e2e`.
+- **Frameworks**:
+  - Serenity/JS with Cucumber BDD & Playwright
+  - Appium 3 with WebdriverIO 10 (`UiAutomator2` & `XCUITest`)
+- **Folder Conventions**:
+  - `features/web/`: Web dashboard BDD features (`@web`)
+  - `features/api/`: Backend API contract & health BDD features (`@api`)
+  - `features/mobile/`: Mobile BDD features (`@mobile`)
+  - `appium/specs/`: Native/hybrid Appium specs
+  - `appium/pageobjects/`: Mobile Page Objects with `switchToWebView()` / `switchToNativeApp()`
+- **Commands**:
+  - `npm test`: Runs all Cucumber specifications
+  - `npm run test:web`, `npm run test:api`, `npm run test:mobile`
+  - `npm run test:mobile:appium:android`, `npm run test:mobile:appium:ios`
+  - `npm run typecheck --workspace=e2e`
+

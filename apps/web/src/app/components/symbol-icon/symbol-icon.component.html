@@ -1,0 +1,65 @@
+<div
+  class="symbol-icon-wrapper"
+  [class.shape-circle]="shape() === 'circle'"
+  [class.shape-rounded]="shape() === 'rounded'"
+  [style.width.px]="pixelSize()"
+  [style.height.px]="pixelSize()"
+  [style.font-size.px]="fontSize()"
+  [attr.aria-label]="alt() || symbol()"
+>
+  @if (config().isMutualFund) {
+    <!-- Dedicated Thai Mutual Fund Placeholder -->
+    <div
+      class="fund-placeholder"
+      [style.background-color]="config().brandColor + '18'"
+      [style.color]="config().brandColor"
+      [style.border-color]="config().brandColor + '30'"
+      [title]="'Mutual Fund: ' + symbol()"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        class="fund-icon"
+      >
+        <path d="M3 21h18" />
+        <path d="M3 10h18" />
+        <path d="M5 6l7-3 7 3" />
+        <path d="M4 10v11" />
+        <path d="M20 10v11" />
+        <path d="M8 14v4" />
+        <path d="M12 14v4" />
+        <path d="M16 14v4" />
+      </svg>
+    </div>
+  } @else {
+    @if (currentSrc() && !hasError()) {
+      <img
+        [src]="currentSrc()!"
+        [alt]="alt() || symbol()"
+        loading="lazy"
+        decoding="async"
+        (load)="onImageLoad()"
+        (error)="onImageError()"
+        class="symbol-logo-img"
+        [class.loaded]="isLoaded()"
+      />
+    }
+
+    <!-- Monogram Fallback & Pre-load Skeleton -->
+    @if (hasError() || !currentSrc() || !isLoaded()) {
+      <div
+        class="symbol-monogram"
+        [class.monogram-placeholder]="!hasError() && !!currentSrc()"
+        [style.background-color]="config().brandColor + '18'"
+        [style.color]="config().brandColor"
+        [style.border-color]="config().brandColor + '35'"
+      >
+        {{ config().monogram }}
+      </div>
+    }
+  }
+</div>

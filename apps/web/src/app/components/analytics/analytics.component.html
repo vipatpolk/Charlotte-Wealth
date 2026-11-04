@@ -1,0 +1,483 @@
+<div class="analytics-container">
+  <!-- Analytics Header with Segmented Sub-Tab Switcher -->
+  <div class="analytics-header">
+    <div class="analytics-title-group">
+      <h2 class="analytics-title">Portfolio Analytics</h2>
+      <p class="analytics-subtitle">Asset allocation, rebalancing, and investment return metrics</p>
+    </div>
+
+    <div class="analytics-subnav" role="tablist" aria-label="Analytics Views">
+      <button
+        type="button"
+        role="tab"
+        class="analytics-tab-btn"
+        [class.active]="internalSubTab() === 'overview'"
+        [attr.aria-selected]="internalSubTab() === 'overview'"
+        (click)="selectSubTab('overview')"
+        id="analytics-tab-overview"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="tab-btn-icon"
+        >
+          <rect x="3" y="3" width="7" height="9" rx="1.5"></rect>
+          <rect x="14" y="3" width="7" height="5" rx="1.5"></rect>
+          <rect x="14" y="12" width="7" height="9" rx="1.5"></rect>
+          <rect x="3" y="16" width="7" height="5" rx="1.5"></rect>
+        </svg>
+        <span>Overview</span>
+      </button>
+
+      <button
+        type="button"
+        role="tab"
+        class="analytics-tab-btn"
+        [class.active]="internalSubTab() === 'allocation'"
+        [attr.aria-selected]="internalSubTab() === 'allocation'"
+        (click)="selectSubTab('allocation')"
+        id="analytics-tab-allocation"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="tab-btn-icon"
+        >
+          <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
+          <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
+        </svg>
+        <span>Allocation</span>
+      </button>
+
+      <button
+        type="button"
+        role="tab"
+        class="analytics-tab-btn"
+        [class.active]="internalSubTab() === 'performance'"
+        [attr.aria-selected]="internalSubTab() === 'performance'"
+        (click)="selectSubTab('performance')"
+        id="analytics-tab-performance"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="tab-btn-icon"
+        >
+          <line x1="18" y1="20" x2="18" y2="10"></line>
+          <line x1="12" y1="20" x2="12" y2="4"></line>
+          <line x1="6" y1="20" x2="6" y2="14"></line>
+        </svg>
+        <span>Performance</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Sub-Tab Panes -->
+  @if (internalSubTab() === 'overview') {
+    <div class="analytics-tab-pane overview-pane">
+      <!-- Top Row: Portfolio Performance & Value KPIs -->
+      <div class="overview-kpi-grid">
+        <div class="overview-kpi-card">
+          <div class="kpi-label">Total Invested</div>
+          <div class="kpi-value font-mono">
+            {{
+              portfolioSummary().totalInvested
+                | currency: displayCurrency() : 'symbol-narrow' : '1.2-2'
+            }}
+          </div>
+        </div>
+        <div class="overview-kpi-card">
+          <div class="kpi-label">Total Value</div>
+          <div class="kpi-value font-mono">
+            {{
+              portfolioSummary().totalCurrentValue
+                | currency: displayCurrency() : 'symbol-narrow' : '1.2-2'
+            }}
+          </div>
+        </div>
+        <div class="overview-kpi-card">
+          <div class="kpi-label">Unrealized P/L</div>
+          <div
+            class="kpi-value font-mono"
+            [class.pl-positive]="portfolioSummary().totalUnrealizedPL >= 0"
+            [class.pl-negative]="portfolioSummary().totalUnrealizedPL < 0"
+          >
+            {{ portfolioSummary().totalUnrealizedPL >= 0 ? '+' : ''
+            }}{{
+              portfolioSummary().totalUnrealizedPL
+                | currency: displayCurrency() : 'symbol-narrow' : '1.2-2'
+            }}
+          </div>
+          <div
+            class="kpi-sub font-mono"
+            [class.pl-positive]="portfolioSummary().totalUnrealizedPLPercent >= 0"
+            [class.pl-negative]="portfolioSummary().totalUnrealizedPLPercent < 0"
+          >
+            {{ portfolioSummary().totalUnrealizedPLPercent >= 0 ? '+' : ''
+            }}{{ portfolioSummary().totalUnrealizedPLPercent | number: '1.2-2' }}%
+          </div>
+        </div>
+        <div class="overview-kpi-card">
+          <div class="kpi-label">Realized P/L</div>
+          <div
+            class="kpi-value font-mono"
+            [class.pl-positive]="portfolioSummary().totalRealizedPL >= 0"
+            [class.pl-negative]="portfolioSummary().totalRealizedPL < 0"
+          >
+            {{ portfolioSummary().totalRealizedPL >= 0 ? '+' : ''
+            }}{{
+              portfolioSummary().totalRealizedPL
+                | currency: displayCurrency() : 'symbol-narrow' : '1.2-2'
+            }}
+          </div>
+          <div
+            class="kpi-sub font-mono"
+            [class.pl-positive]="portfolioSummary().totalRealizedPLPercent >= 0"
+            [class.pl-negative]="portfolioSummary().totalRealizedPLPercent < 0"
+          >
+            {{ portfolioSummary().totalRealizedPLPercent >= 0 ? '+' : ''
+            }}{{ portfolioSummary().totalRealizedPLPercent | number: '1.2-2' }}%
+          </div>
+        </div>
+        <div class="overview-kpi-card kpi-card-highlight">
+          <div class="kpi-label">Total Return</div>
+          <div
+            class="kpi-value font-mono"
+            [class.pl-positive]="portfolioSummary().totalReturn >= 0"
+            [class.pl-negative]="portfolioSummary().totalReturn < 0"
+          >
+            {{ portfolioSummary().totalReturn >= 0 ? '+' : ''
+            }}{{
+              portfolioSummary().totalReturn
+                | currency: displayCurrency() : 'symbol-narrow' : '1.2-2'
+            }}
+          </div>
+          <div
+            class="kpi-sub font-mono"
+            [class.pl-positive]="portfolioSummary().totalReturnPercent >= 0"
+            [class.pl-negative]="portfolioSummary().totalReturnPercent < 0"
+          >
+            {{ portfolioSummary().totalReturnPercent >= 0 ? '+' : ''
+            }}{{ portfolioSummary().totalReturnPercent | number: '1.2-2' }}%
+          </div>
+        </div>
+      </div>
+
+      <!-- Mid Row: Allocation Donut & Asset Type Returns -->
+      <div class="overview-grid-row">
+        <!-- Asset Distribution Card -->
+        <div class="overview-card">
+          <div class="overview-card-header">
+            <h3 class="overview-card-title">Asset Distribution</h3>
+            <button type="button" class="card-action-btn" (click)="selectSubTab('allocation')">
+              <span>View Allocation</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="action-btn-svg"
+              >
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+          </div>
+          <div class="donut-chart-wrapper">
+            <svg viewBox="0 0 42 42" class="donut-svg">
+              <circle
+                cx="21"
+                cy="21"
+                r="15.91549430918954"
+                fill="transparent"
+                stroke="var(--bg-card)"
+                stroke-width="6"
+              ></circle>
+              @for (seg of donutSegments(); track seg.key) {
+                <circle
+                  cx="21"
+                  cy="21"
+                  r="15.91549430918954"
+                  fill="transparent"
+                  [attr.stroke]="seg.color"
+                  stroke-width="5"
+                  [attr.stroke-dasharray]="seg.dashArray"
+                  [attr.stroke-dashoffset]="seg.dashOffset"
+                  class="donut-segment"
+                >
+                  <title>{{ seg.label }}: {{ seg.actualPercent | number: '1.1-1' }}%</title>
+                </circle>
+              }
+            </svg>
+            <div class="donut-center-text">
+              <div class="donut-center-val">
+                {{
+                  totalPortfolioValue() | currency: displayCurrency() : 'symbol-narrow' : '1.0-0'
+                }}
+              </div>
+              <div class="donut-center-label">Total Value</div>
+            </div>
+          </div>
+          <div class="overview-legend-grid">
+            @for (item of assetClassDistribution(); track item.type) {
+              <div class="legend-pill">
+                <span class="legend-color-dot" [style.background-color]="item.color"></span>
+                <span class="legend-pill-name">{{ item.label }}</span>
+                <span class="legend-pill-val font-mono"
+                  >{{ item.percentage | number: '1.1-1' }}%</span
+                >
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Asset Type Returns & Currency Exposure Card -->
+        <div class="overview-card">
+          <div class="overview-card-header">
+            <h3 class="overview-card-title">Returns by Asset Class</h3>
+            <button type="button" class="card-action-btn" (click)="selectSubTab('performance')">
+              <span>View Performance</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="action-btn-svg"
+              >
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+          </div>
+
+          <div class="asset-returns-list">
+            @for (asset of assetTypePerformance(); track asset.type) {
+              <div class="asset-return-row">
+                <div class="asset-return-label">
+                  <span class="color-dot" [style.backgroundColor]="asset.color"></span>
+                  <span>{{ asset.label }}</span>
+                </div>
+                <div class="asset-return-track">
+                  <div
+                    class="asset-return-fill"
+                    [style.width.%]="
+                      ((asset.totalReturnPercent < 0
+                        ? -asset.totalReturnPercent
+                        : asset.totalReturnPercent) /
+                        maxAbsReturnPercent()) *
+                      100
+                    "
+                    [style.backgroundColor]="
+                      asset.totalReturnPercent >= 0
+                        ? 'var(--color-pl-positive)'
+                        : 'var(--color-pl-negative)'
+                    "
+                  ></div>
+                </div>
+                <div
+                  class="asset-return-value font-mono"
+                  [class.pl-positive]="asset.totalReturnPercent >= 0"
+                  [class.pl-negative]="asset.totalReturnPercent < 0"
+                >
+                  {{ asset.totalReturnPercent >= 0 ? '+' : ''
+                  }}{{ asset.totalReturnPercent | number: '1.2-2' }}%
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="overview-currency-section">
+            <div class="overview-section-title">Currency Exposure</div>
+            <div class="currency-labels">
+              <span
+                >USD
+                <span class="text-muted"
+                  >({{ currencyExposure().usdPercent | number: '1.1-1' }}%)</span
+                ></span
+              >
+              <span
+                >THB
+                <span class="text-muted"
+                  >({{ currencyExposure().thbPercent | number: '1.1-1' }}%)</span
+                ></span
+              >
+            </div>
+            <div class="currency-bar">
+              <div
+                class="currency-segment usd-segment"
+                [style.width.%]="currencyExposure().usdPercent"
+              ></div>
+              <div
+                class="currency-segment thb-segment"
+                [style.width.%]="currencyExposure().thbPercent"
+              ></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Row: Top Concentration & Top Movers -->
+      <div class="overview-grid-row">
+        <!-- Top Concentration Card -->
+        <div class="overview-card">
+          <div class="overview-card-header">
+            <h3 class="overview-card-title">Top Holdings Concentration</h3>
+            <button type="button" class="card-action-btn" (click)="selectSubTab('allocation')">
+              <span>All Holdings</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="action-btn-svg"
+              >
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+          </div>
+          <div class="concentration-list">
+            @for (h of topConcentration(); track h.symbol) {
+              <div class="concentration-item">
+                <div class="concentration-header">
+                  <div class="concentration-symbol">
+                    <app-symbol-icon [symbol]="h.symbol" [size]="'sm'"></app-symbol-icon>
+                    <span
+                      class="symbol-badge symbol-badge-sm"
+                      [style.background-color]="h.color + '18'"
+                      [style.color]="h.color"
+                      [style.border-color]="h.color + '30'"
+                    >
+                      {{ h.displaySymbol }}
+                    </span>
+                  </div>
+                  <div class="concentration-stats">
+                    <span class="concentration-val font-mono">{{
+                      h.value | currency: displayCurrency() : 'symbol-narrow' : '1.0-0'
+                    }}</span>
+                    <span class="concentration-pct font-mono font-semibold"
+                      >{{ h.percent | number: '1.1-1' }}%</span
+                    >
+                  </div>
+                </div>
+                <div class="concentration-bar-container">
+                  <div
+                    class="concentration-bar"
+                    [style.width.%]="h.percent"
+                    [style.background-color]="h.color"
+                  ></div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Top Movers Card -->
+        <div class="overview-card">
+          <div class="overview-card-header">
+            <h3 class="overview-card-title">Top Movers</h3>
+            <button type="button" class="card-action-btn" (click)="selectSubTab('performance')">
+              <span>Performance Table</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="action-btn-svg"
+              >
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+          </div>
+
+          <div class="movers-preview-grid">
+            <div class="movers-col">
+              <div class="movers-sub-heading text-positive">Gainers</div>
+              @for (g of topMovers().gainers; track g.symbol) {
+                <div class="mover-preview-row">
+                  <app-symbol-icon
+                    [symbol]="g.symbol"
+                    [assetType]="g.assetType"
+                    [size]="'xs'"
+                  ></app-symbol-icon>
+                  <span class="mover-sym font-semibold">{{ g.displaySymbol }}</span>
+                  <span class="mover-val pl-positive font-mono font-semibold"
+                    >+{{ g.totalReturnPercent | number: '1.2-2' }}%</span
+                  >
+                </div>
+              } @empty {
+                <div class="mover-empty-text">No gainers found</div>
+              }
+            </div>
+
+            <div class="movers-col">
+              <div class="movers-sub-heading text-negative">Losers</div>
+              @for (l of topMovers().losers; track l.symbol) {
+                <div class="mover-preview-row">
+                  <app-symbol-icon
+                    [symbol]="l.symbol"
+                    [assetType]="l.assetType"
+                    [size]="'xs'"
+                  ></app-symbol-icon>
+                  <span class="mover-sym font-semibold">{{ l.displaySymbol }}</span>
+                  <span class="mover-val pl-negative font-mono font-semibold"
+                    >{{ l.totalReturnPercent | number: '1.2-2' }}%</span
+                  >
+                </div>
+              } @empty {
+                <div class="mover-empty-text">No losers found</div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  } @else if (internalSubTab() === 'allocation') {
+    <div class="analytics-tab-pane">
+      <app-asset-allocation
+        [summaries]="summaries()"
+        [pricesMap]="pricesMap()"
+        [displayCurrency]="displayCurrency()"
+        [exchangeRate]="exchangeRate()"
+        [hasRate]="hasRate()"
+      ></app-asset-allocation>
+    </div>
+  } @else if (internalSubTab() === 'performance') {
+    <div class="analytics-tab-pane">
+      <app-performance
+        [summaries]="summaries()"
+        [closedSummaries]="closedSummaries()"
+        [transactionSummaries]="transactionSummaries()"
+        [rawTransactions]="rawTransactions()"
+        [pricesMap]="pricesMap()"
+        [displayCurrency]="displayCurrency()"
+        [exchangeRate]="exchangeRate()"
+        [hasRate]="hasRate()"
+      ></app-performance>
+    </div>
+  }
+</div>

@@ -1,0 +1,144 @@
+<!-- Mobile Controls Bar (Filter & Sort) -->
+<div class="mobile-controls-bar" id="mobile-controls-bar">
+  <div class="mobile-controls-grid" [class.has-filter]="isClosedTab()">
+    <!-- Asset Filter Control (Closed Position Tab) -->
+    @if (isClosedTab()) {
+      <div class="mobile-control-field">
+        <div class="mobile-control-icon-wrap">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mobile-control-icon">
+            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+          </svg>
+        </div>
+        <button
+          class="mobile-control-btn"
+          id="mobile-filter-select-btn"
+          (click)="toggleMobileFilter.emit()"
+          type="button"
+        >
+          @if (closedAssetTypeOptions().find(o => o.id === selectedClosedAssetType()); as selected) {
+            <span>Filter: {{ selected.label }} ({{ selected.count }})</span>
+          } @else {
+            <span>Filter: All</span>
+          }
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron-arrow-sm" [class.chevron-open]="isMobileFilterDropdownOpen()">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+        @if (isMobileFilterDropdownOpen()) {
+          <div class="symbol-dropdown-menu mobile-control-dropdown-menu">
+            <div class="dropdown-list">
+              @for (opt of closedAssetTypeOptions(); track opt.id) {
+                <button
+                  class="dropdown-item"
+                  [class.active]="selectedClosedAssetType() === opt.id"
+                  (click)="setClosedAssetType.emit(opt.id)"
+                  type="button"
+                >
+                  Filter: {{ opt.label }} ({{ opt.count }})
+                </button>
+              }
+            </div>
+          </div>
+          <div class="dropdown-backdrop" (click)="toggleMobileFilter.emit()"></div>
+        }
+      </div>
+    }
+
+    <!-- Sort Control -->
+    <div class="mobile-control-field" [class.dropdown-is-open]="isMobileSortDropdownOpen()">
+      <div class="mobile-control-icon-wrap">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mobile-control-icon">
+          <path d="m3 16 4 4 4-4"></path>
+          <path d="M7 20V4"></path>
+          <path d="m21 8-4-4-4 4"></path>
+          <path d="M17 4v16"></path>
+        </svg>
+      </div>
+      <button
+        class="mobile-control-btn"
+        id="mobile-sort-select-btn"
+        (click)="toggleMobileSort.emit()"
+        type="button"
+      >
+        @if (sortOptions().find(o => o.field === sortField()); as selectedSort) {
+          <span>Sort: {{ selectedSort.label }}</span>
+        } @else {
+          <span>Sort</span>
+        }
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron-arrow-sm" [class.chevron-open]="isMobileSortDropdownOpen()">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+      @if (isMobileSortDropdownOpen()) {
+        <div class="symbol-dropdown-menu mobile-control-dropdown-menu">
+          <div class="dropdown-list">
+            @for (opt of sortOptions(); track opt.field) {
+              <button
+                class="dropdown-item"
+                [class.active]="sortField() === opt.field"
+                (click)="setSort.emit(opt.field)"
+                type="button"
+              >
+                Sort: {{ opt.label }}
+              </button>
+            }
+          </div>
+        </div>
+        <div class="dropdown-backdrop" (click)="toggleMobileSort.emit()"></div>
+      }
+      <button
+        class="mobile-sort-dir-btn"
+        (click)="toggleSortDir.emit()"
+        id="mobile-sort-dir-btn"
+        [title]="sortDirection() === 'asc' ? 'Sort Ascending' : 'Sort Descending'"
+        type="button"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="sort-arrow" [class.sort-arrow-up]="sortDirection() === 'asc'">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+        <span class="mobile-sort-dir-text">{{ sortDirection() === 'asc' ? 'ASC' : 'DESC' }}</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Desktop Asset Type Filter Bar (Closed Position Tab) -->
+@if (isClosedTab()) {
+  <div class="asset-filter-bar desktop-asset-filter-bar" id="closed-asset-filter-bar">
+    <span class="asset-filter-label">Asset Type</span>
+    <div class="asset-filter-pills">
+      @for (opt of closedAssetTypeOptions(); track opt.id) {
+        <button
+          class="asset-filter-pill"
+          [class.asset-filter-pill-active]="selectedClosedAssetType() === opt.id"
+          [class]="'asset-filter-pill-' + opt.id"
+          (click)="setClosedAssetType.emit(opt.id)"
+          [id]="'filter-asset-' + opt.id"
+        >
+          <span class="asset-filter-pill-name">{{ opt.label }}</span>
+          <span class="asset-filter-pill-count">{{ opt.count }}</span>
+        </button>
+      }
+    </div>
+  </div>
+}
+
+<!-- Desktop Sort Bar -->
+<div class="sort-bar desktop-sort-bar" id="sort-bar">
+  <span class="sort-label">Sort by</span>
+  @for (opt of sortOptions(); track opt.field) {
+    <button
+      class="sort-pill"
+      [class.sort-pill-active]="sortField() === opt.field"
+      (click)="setSort.emit(opt.field)"
+      [id]="'sort-' + opt.field"
+    >
+      {{ opt.label }}
+      @if (sortField() === opt.field) {
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="sort-arrow" [class.sort-arrow-up]="sortDirection() === 'asc'">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      }
+    </button>
+  }
+</div>

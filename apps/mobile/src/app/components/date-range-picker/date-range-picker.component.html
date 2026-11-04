@@ -1,0 +1,192 @@
+<div class="datepicker-wrapper" [class.dropdown-is-open]="isOpen()">
+  <!-- Trigger Button -->
+  <button
+    type="button"
+    class="datepicker-trigger-btn"
+    [class.active]="hasActiveFilter()"
+    [class.open]="isOpen()"
+    (click)="toggleOpen()"
+    id="datepicker-trigger-btn"
+    aria-label="Open date range filter"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="datepicker-icon">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+      <line x1="16" y1="2" x2="16" y2="6"></line>
+      <line x1="8" y1="2" x2="8" y2="6"></line>
+      <line x1="3" y1="10" x2="21" y2="10"></line>
+    </svg>
+
+    <span class="datepicker-trigger-text">{{ displayText() }}</span>
+
+    @if (hasActiveFilter()) {
+      <button
+        type="button"
+        class="btn-trigger-clear"
+        (click)="clearRange($event)"
+        title="Clear date filter"
+        aria-label="Clear date filter"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="trigger-clear-icon">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    }
+
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class="chevron-arrow"
+      [class.chevron-open]="isOpen()"
+    >
+      <polyline points="6 9 12 15 18 9"></polyline>
+    </svg>
+  </button>
+
+  @if (isOpen()) {
+    <!-- Backdrop for click outside -->
+    <div class="datepicker-backdrop" (click)="close()"></div>
+
+    <!-- Dropdown Popover Modal -->
+    <div class="datepicker-popover" role="dialog" aria-modal="true" aria-label="Date Range Picker">
+      <div class="datepicker-body">
+        <!-- Sidebar Presets -->
+        <div class="datepicker-presets-sidebar">
+          <span class="presets-header">Quick Presets</span>
+          <div class="presets-list">
+            @for (preset of presets; track preset.id) {
+              <button
+                type="button"
+                class="preset-item"
+                [class.active]="selectedPreset() === preset.id"
+                (click)="selectPreset(preset)"
+              >
+                {{ preset.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Main Calendar Area -->
+        <div class="datepicker-calendar-panel">
+          <!-- Calendar Month Navigation Header -->
+          <div class="calendar-header">
+            <button
+              type="button"
+              class="btn-cal-nav"
+              (click)="prevMonth()"
+              title="Previous Month"
+              aria-label="Previous month"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cal-nav-icon">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+            </button>
+
+            <span class="calendar-month-title">{{ currentMonthLabel() }}</span>
+
+            <button
+              type="button"
+              class="btn-cal-nav"
+              (click)="nextMonth()"
+              title="Next Month"
+              aria-label="Next month"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cal-nav-icon">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Week Days Row -->
+          <div class="calendar-weekdays">
+            @for (w of weekDays; track w) {
+              <span class="calendar-weekday">{{ w }}</span>
+            }
+          </div>
+
+          <!-- Calendar Grid Days -->
+          <div class="calendar-grid">
+            @for (day of calendarDays(); track day.date) {
+              <button
+                type="button"
+                class="cal-day-cell"
+                [class.other-month]="!day.isCurrentMonth"
+                [class.is-today]="day.isToday"
+                [class.is-start]="day.isSelectedStart"
+                [class.is-end]="day.isSelectedEnd"
+                [class.in-range]="day.isInRange"
+                [class.in-hover-range]="day.isInHoverRange"
+                (click)="selectDay(day)"
+                (mouseenter)="onDayHover(day)"
+                (mouseleave)="onDayLeave()"
+              >
+                <span class="day-num">{{ day.dayNumber }}</span>
+              </button>
+            }
+          </div>
+
+          <!-- Manual Inputs Form -->
+          <div class="manual-inputs-bar">
+            <div class="manual-input-group">
+              <label class="manual-label" for="manual-from-date">From</label>
+              <input
+                type="date"
+                class="manual-date-input"
+                id="manual-from-date"
+                [value]="tempStartDate()"
+                (input)="onManualStartChange($any($event.target).value)"
+              />
+            </div>
+
+            <span class="manual-separator">–</span>
+
+            <div class="manual-input-group">
+              <label class="manual-label" for="manual-to-date">To</label>
+              <input
+                type="date"
+                class="manual-date-input"
+                id="manual-to-date"
+                [value]="tempEndDate()"
+                (input)="onManualEndChange($any($event.target).value)"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Popover Footer -->
+      <div class="datepicker-footer">
+        <button
+          type="button"
+          class="btn-footer-reset"
+          (click)="clearRange()"
+        >
+          Reset All
+        </button>
+
+        <div class="footer-actions-right">
+          <button
+            type="button"
+            class="btn-footer-cancel"
+            (click)="close()"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="btn-footer-apply"
+            (click)="applySelection()"
+          >
+            Apply Range
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

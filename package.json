@@ -1,0 +1,45 @@
+{
+  "name": "charlotte-wealth",
+  "version": "1.0.0",
+  "description": "Charlotte Wealth - Private Wealth Management Platform",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "apps/mobile",
+    "apps/api",
+    "apps/e2e"
+  ],
+  "scripts": {
+    "start": "concurrently -n \"api,web,mobile\" -c \"blue,green,magenta\" \"npm run start:api\" \"npm run start:web\" \"npm run start:mobile\"",
+    "start:all": "concurrently -n \"api,web,mobile\" -c \"blue,green,magenta\" \"npm run start:api\" \"npm run start:web\" \"npm run start:mobile\"",
+    "start:web": "npm run start --workspace=web",
+    "start:mobile": "npm run start --workspace=mobile",
+    "start:api": "npm run start --workspace=api",
+    "build:web": "npm run build --workspace=web",
+    "build:mobile": "npm run build --workspace=mobile",
+    "build:api": "npm run build --workspace=api",
+    "build:all": "npm run build:api && npm run build:web && npm run build:mobile",
+    "test": "npm run test --workspace=e2e",
+    "test:all": "npm run test:all --workspace=e2e",
+    "test:e2e": "npm run test --workspace=e2e",
+    "test:e2e:headed": "npm run test:headed --workspace=e2e",
+    "test:e2e:report": "npm run test:report --workspace=e2e",
+    "test:web": "npm run test:web --workspace=e2e",
+    "test:api": "npm run test:api --workspace=e2e",
+    "test:mobile": "npm run test:mobile --workspace=e2e",
+    "test:mobile:appium": "npm run test:appium --workspace=e2e",
+    "test:mobile:appium:android": "npm run test:appium:android --workspace=e2e",
+    "test:mobile:appium:ios": "npm run test:appium:ios --workspace=e2e",
+    "appium": "npm run appium --workspace=e2e",
+    "appium:drivers": "npm run appium:drivers --workspace=e2e",
+    "scan:secrets": "node scripts/scan-secrets.js",
+    "typecheck": "npm run typecheck --workspace=e2e"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.6",
+    "cross-env": "^7.0.3",
+    "ts-node": "^10.9.2",
+    "typescript": "~6.0.3",
+    "vite": "^8.3.5"
+  }
+}

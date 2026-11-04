@@ -1,0 +1,338 @@
+<div class="perf-container">
+  <div class="perf-header">
+    <h2 class="perf-title">Performance</h2>
+    <app-date-range-picker
+      [startDate]="startDate()"
+      [endDate]="endDate()"
+      (rangeChange)="onDateRangeChange($event)"
+    ></app-date-range-picker>
+  </div>
+
+  <div class="perf-summary-grid">
+    <div class="perf-summary-card">
+      <div class="perf-summary-label">Total Invested</div>
+      <div class="perf-summary-value font-mono">{{ portfolioSummary().totalInvested | currency:displayCurrency():'symbol-narrow':'1.2-2' }}</div>
+    </div>
+    <div class="perf-summary-card">
+      <div class="perf-summary-label">Total Value</div>
+      <div class="perf-summary-value font-mono">{{ portfolioSummary().totalCurrentValue | currency:displayCurrency():'symbol-narrow':'1.2-2' }}</div>
+    </div>
+    <div class="perf-summary-card">
+      <div class="perf-summary-label">P/L</div>
+      <div class="perf-summary-value font-mono" [class.pl-positive]="portfolioSummary().totalUnrealizedPL >= 0" [class.pl-negative]="portfolioSummary().totalUnrealizedPL < 0">
+        {{ portfolioSummary().totalUnrealizedPL >= 0 ? '+' : '' }}{{ portfolioSummary().totalUnrealizedPL | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+      </div>
+      <div class="perf-summary-sub font-mono" [class.pl-positive]="portfolioSummary().totalUnrealizedPLPercent >= 0" [class.pl-negative]="portfolioSummary().totalUnrealizedPLPercent < 0">
+        {{ portfolioSummary().totalUnrealizedPLPercent >= 0 ? '+' : '' }}{{ portfolioSummary().totalUnrealizedPLPercent | number:'1.2-2' }}%
+      </div>
+    </div>
+    <div class="perf-summary-card">
+      <div class="perf-summary-label">Realized P/L</div>
+      <div class="perf-summary-value font-mono" [class.pl-positive]="portfolioSummary().totalRealizedPL >= 0" [class.pl-negative]="portfolioSummary().totalRealizedPL < 0">
+        {{ portfolioSummary().totalRealizedPL >= 0 ? '+' : '' }}{{ portfolioSummary().totalRealizedPL | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+      </div>
+      <div class="perf-summary-sub font-mono" [class.pl-positive]="portfolioSummary().totalRealizedPLPercent >= 0" [class.pl-negative]="portfolioSummary().totalRealizedPLPercent < 0">
+        {{ portfolioSummary().totalRealizedPLPercent >= 0 ? '+' : '' }}{{ portfolioSummary().totalRealizedPLPercent | number:'1.2-2' }}%
+      </div>
+    </div>
+    <div class="perf-summary-card perf-summary-card-highlight">
+      <div class="perf-summary-label">Total Return</div>
+      <div class="perf-summary-value font-mono" [class.pl-positive]="portfolioSummary().totalReturn >= 0" [class.pl-negative]="portfolioSummary().totalReturn < 0">
+        {{ portfolioSummary().totalReturn >= 0 ? '+' : '' }}{{ portfolioSummary().totalReturn | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+      </div>
+      <div class="perf-summary-sub font-mono" [class.pl-positive]="portfolioSummary().totalReturnPercent >= 0" [class.pl-negative]="portfolioSummary().totalReturnPercent < 0">
+        {{ portfolioSummary().totalReturnPercent >= 0 ? '+' : '' }}{{ portfolioSummary().totalReturnPercent | number:'1.2-2' }}%
+      </div>
+    </div>
+  </div>
+
+  <div class="perf-charts-row">
+    <div class="perf-chart-card">
+      <h3 class="perf-chart-title">Asset Type Return</h3>
+      <div class="perf-bar-chart">
+        @for (asset of assetTypePerformance(); track asset.type) {
+          <div class="perf-bar-row">
+            <div class="perf-bar-label">
+              <span class="color-dot" [style.backgroundColor]="asset.color"></span>
+              {{ asset.label }}
+            </div>
+            <div class="perf-bar-track">
+              <div class="perf-bar-fill"
+                   [style.width.%]="(asset.totalReturnPercent < 0 ? -asset.totalReturnPercent : asset.totalReturnPercent) / getMaxAbsReturnPercent() * 100"
+                   [style.backgroundColor]="asset.totalReturnPercent >= 0 ? 'var(--color-pl-positive)' : 'var(--color-pl-negative)'">
+              </div>
+            </div>
+            <div class="perf-bar-value font-mono" [class.pl-positive]="asset.totalReturnPercent >= 0" [class.pl-negative]="asset.totalReturnPercent < 0">
+              {{ asset.totalReturnPercent >= 0 ? '+' : '' }}{{ asset.totalReturnPercent | number:'1.2-2' }}%
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="perf-chart-card">
+      <h3 class="perf-chart-title">Top Movers</h3>
+      
+      <div class="perf-movers-section">
+        <h4>Top Gainers</h4>
+        <div class="perf-gainers-list">
+          @for (gainer of topGainers(); track gainer.symbol) {
+            <div class="perf-rank-item">
+              <app-symbol-icon [symbol]="gainer.symbol" [assetType]="gainer.assetType" [size]="'sm'"></app-symbol-icon>
+              <span
+                class="symbol-badge symbol-badge-sm perf-rank-sym"
+                [style.background-color]="gainer.color + '18'"
+                [style.color]="gainer.color"
+                [style.border-color]="gainer.color + '30'"
+              >
+                {{ gainer.displaySymbol }}
+              </span>
+              <div class="perf-rank-name" [title]="gainer.name">{{ gainer.name }}</div>
+              <div class="perf-rank-bar">
+                <div class="perf-bar-fill pl-positive-bg" [style.width.%]="(gainer.totalReturnPercent / (topGainers()[0]?.totalReturnPercent || 1)) * 100"></div>
+              </div>
+              <div class="perf-rank-val pl-positive font-mono">+{{ gainer.totalReturnPercent | number:'1.2-2' }}%</div>
+            </div>
+          }
+          @if (topGainers().length === 0) {
+            <div class="perf-empty-state">No gainers found</div>
+          }
+        </div>
+
+        <h4 style="margin-top: 1.25rem;">Top Losers</h4>
+        <div class="perf-losers-list">
+          @for (loser of topLosers(); track loser.symbol) {
+            <div class="perf-rank-item">
+              <app-symbol-icon [symbol]="loser.symbol" [assetType]="loser.assetType" [size]="'sm'"></app-symbol-icon>
+              <span
+                class="symbol-badge symbol-badge-sm perf-rank-sym"
+                [style.background-color]="loser.color + '18'"
+                [style.color]="loser.color"
+                [style.border-color]="loser.color + '30'"
+              >
+                {{ loser.displaySymbol }}
+              </span>
+              <div class="perf-rank-name" [title]="loser.name">{{ loser.name }}</div>
+              <div class="perf-rank-bar">
+                <div class="perf-bar-fill pl-negative-bg" [style.width.%]="(loser.totalReturnPercent / (topLosers()[0]?.totalReturnPercent || -1)) * 100"></div>
+              </div>
+              <div class="perf-rank-val pl-negative font-mono">{{ loser.totalReturnPercent | number:'1.2-2' }}%</div>
+            </div>
+          }
+          @if (topLosers().length === 0) {
+            <div class="perf-empty-state">No losers found</div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="perf-table-section">
+    <div class="perf-toolbar">
+      <div class="perf-search-container" [class.search-focused]="isSearchFocused() || isSearchDropdownOpen()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="perf-search-icon">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input 
+          type="text" 
+          class="perf-search-input" 
+          placeholder="Search by symbol or name..."
+          [value]="searchQuery()"
+          (input)="onSearchInput($any($event.target).value)"
+          (focus)="onSearchFocus()"
+          (keydown)="onSearchKeydown($event)"
+          #searchInputEl
+          autocomplete="off"
+          spellcheck="false"
+        >
+        @if (searchQuery()) {
+          <button
+            class="perf-search-clear-btn"
+            (mousedown)="$event.preventDefault(); clearSearch(searchInputEl)"
+            type="button"
+            title="Clear search"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="clear-icon-svg">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        }
+
+        <!-- Autocomplete Dropdown Panel -->
+        @if (isSearchDropdownOpen()) {
+          <div class="perf-autocomplete-dropdown" id="perf-autocomplete-dropdown">
+            <div class="perf-autocomplete-header">
+              <span class="perf-autocomplete-title">
+                @if (searchQuery()) {
+                  Matching Symbols ({{ autocompleteSuggestions().length }})
+                } @else {
+                  Available Symbols ({{ autocompleteSuggestions().length }})
+                }
+              </span>
+              <span class="perf-autocomplete-hint">↑↓ navigate · ↵ select · esc</span>
+            </div>
+
+            <div class="perf-autocomplete-list" role="listbox">
+              @for (item of autocompleteSuggestions(); track item.symbol; let i = $index) {
+                <div
+                  class="perf-autocomplete-item"
+                  [class.active]="searchActiveIndex() === i"
+                  role="option"
+                  (mousedown)="$event.preventDefault(); selectAutocompleteItem(item)"
+                  (mouseenter)="searchActiveIndex.set(i)"
+                >
+                  <div class="perf-autocomplete-item-left">
+                    <app-symbol-icon [symbol]="item.symbol" [assetType]="item.assetType" [size]="'xs'"></app-symbol-icon>
+                    <span
+                      class="symbol-badge symbol-badge-xs"
+                      [style.background-color]="item.color + '18'"
+                      [style.color]="item.color"
+                      [style.border-color]="item.color + '30'"
+                    >
+                      {{ item.displaySymbol }}
+                    </span>
+                    <div class="perf-autocomplete-item-info">
+                      <div class="perf-autocomplete-item-name" [title]="item.name">{{ item.name }}</div>
+                      <div class="perf-autocomplete-item-tags">
+                        <span class="asset-tag">{{ item.assetTypeLabel }}</span>
+                        <span class="perf-status-pill perf-status-pill-xs" [class]="'perf-status-' + item.status.toLowerCase()">{{ item.status }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="perf-autocomplete-item-right font-mono" [class.pl-positive]="item.totalReturnPercent >= 0" [class.pl-negative]="item.totalReturnPercent < 0">
+                    {{ item.totalReturnPercent >= 0 ? '+' : '' }}{{ item.totalReturnPercent | number:'1.2-2' }}%
+                  </div>
+                </div>
+              } @empty {
+                <div class="perf-autocomplete-empty">
+                  No symbols match "<strong>{{ searchQuery() }}</strong>"
+                </div>
+              }
+            </div>
+
+            @if (searchQuery()) {
+              <div class="perf-autocomplete-footer">
+                <button
+                  type="button"
+                  class="perf-autocomplete-footer-btn"
+                  (mousedown)="$event.preventDefault(); closeSearchDropdown()"
+                >
+                  Filter table by "{{ searchQuery() }}" ({{ filteredSymbolPerformance().length }} results)
+                </button>
+              </div>
+            }
+          </div>
+
+          <!-- Backdrop overlay to dismiss dropdown on click-outside -->
+          <div class="perf-search-backdrop" (mousedown)="closeSearchDropdown()"></div>
+        }
+      </div>
+
+      <div class="perf-toolbar-controls">
+        <select class="perf-filter-select" [value]="assetTypeFilter()" (change)="setAssetTypeFilter($any($event.target).value)">
+          @for (opt of assetTypeOptions(); track opt.value) {
+            <option [value]="opt.value">{{ opt.label }}</option>
+          }
+        </select>
+        <select class="perf-filter-select" [value]="statusFilter()" (change)="setStatusFilter($any($event.target).value)">
+          <option value="all">All Status</option>
+          <option value="open">Open</option>
+          <option value="closed">Closed</option>
+        </select>
+        <select class="perf-filter-select" [value]="sortField()" (change)="setSort($any($event.target).value)">
+          @for (opt of sortOptions; track opt.field) {
+            <option [value]="opt.field">Sort: {{ opt.label }}</option>
+          }
+        </select>
+        <button class="perf-filter-btn" (click)="toggleSortDirection()">
+          {{ sortDirection() === 'asc' ? '↑ Asc' : '↓ Desc' }}
+        </button>
+      </div>
+    </div>
+
+    <div class="perf-table-wrapper">
+      <div class="perf-table">
+        <div class="perf-table-header">
+          <div>Symbol</div>
+          <div>Status</div>
+          <div style="text-align: right">Invested</div>
+          <div style="text-align: right">Current Value</div>
+          <div style="text-align: right">Realized P/L</div>
+          <div style="text-align: right">Unrealized P/L</div>
+          <div style="text-align: right">Total Return</div>
+        </div>
+
+        @for (sym of filteredSymbolPerformance(); track sym.symbol) {
+          <div class="perf-table-row">
+            <div class="perf-symbol-col">
+              <app-symbol-icon [symbol]="sym.symbol" [assetType]="sym.assetType" [size]="'sm'"></app-symbol-icon>
+              <span
+                class="symbol-badge symbol-badge-sm"
+                [style.background-color]="sym.color + '18'"
+                [style.color]="sym.color"
+                [style.border-color]="sym.color + '30'"
+              >
+                {{ sym.displaySymbol }}
+              </span>
+              <span class="symbol-name" [title]="sym.name">{{ sym.name }}</span>
+              <span class="asset-tag">{{ sym.assetTypeLabel }}</span>
+              <span class="perf-status-pill perf-mobile-only" [class]="'perf-status-' + sym.status.toLowerCase()">{{ sym.status }}</span>
+            </div>
+            
+            <div class="perf-col-status perf-desktop-only">
+              <span class="perf-status-pill" [class]="'perf-status-' + sym.status.toLowerCase()">{{ sym.status }}</span>
+            </div>
+            
+            <div class="perf-mobile-stats-grid">
+              <div class="perf-stat-cell">
+                <span class="perf-mobile-label">Invested</span>
+                <span class="font-mono font-semibold">{{ sym.investedCost | currency:displayCurrency():'symbol-narrow':'1.2-2' }}</span>
+              </div>
+              
+              <div class="perf-stat-cell">
+                <span class="perf-mobile-label">Current Value</span>
+                <span class="font-mono font-semibold">{{ sym.currentValue | currency:displayCurrency():'symbol-narrow':'1.2-2' }}</span>
+              </div>
+              
+              <div class="perf-stat-cell">
+                <span class="perf-mobile-label">Realized P/L</span>
+                <span class="font-mono font-semibold" [class.pl-positive]="sym.realizedPL > 0" [class.pl-negative]="sym.realizedPL < 0">
+                  {{ sym.realizedPL > 0 ? '+' : '' }}{{ sym.realizedPL | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+                </span>
+              </div>
+              
+              <div class="perf-stat-cell">
+                <span class="perf-mobile-label">Unrealized P/L</span>
+                <span class="font-mono font-semibold" [class.pl-positive]="sym.unrealizedPL > 0" [class.pl-negative]="sym.unrealizedPL < 0">
+                  {{ sym.unrealizedPL > 0 ? '+' : '' }}{{ sym.unrealizedPL | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+                </span>
+              </div>
+              
+              <div class="perf-stat-cell perf-stat-cell-full">
+                <span class="perf-mobile-label">Total Return</span>
+                <div class="font-mono font-bold perf-total-return-val" [class.pl-positive]="sym.totalReturn > 0" [class.pl-negative]="sym.totalReturn < 0">
+                  <span class="perf-amount">{{ sym.totalReturn > 0 ? '+' : '' }}{{ sym.totalReturn | currency:displayCurrency():'symbol-narrow':'1.2-2' }}</span>
+                  <span class="perf-return-pct">({{ sym.totalReturnPercent > 0 ? '+' : '' }}{{ sym.totalReturnPercent | number:'1.2-2' }}%)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+        
+        @if (filteredSymbolPerformance().length === 0) {
+          <div class="perf-empty-state">No matching symbols found.</div>
+        }
+      </div>
+    </div>
+    
+    @if (symbolPerformance().length > 10) {
+      <div style="text-align: center; margin-top: 1rem;">
+        <button class="perf-show-all-btn" (click)="toggleShowAll()">
+          {{ showAllSymbols() ? 'Show Top 10 Only' : 'Show All (' + symbolPerformance().length + ' symbols)' }}
+        </button>
+      </div>
+    }
+  </div>
+</div>

@@ -1,0 +1,37 @@
+# Cursor Rules - Charlotte Wealth
+
+You are an expert AI software engineer assisting in the Charlotte Wealth private wealth management repository.
+
+## Monorepo Architecture
+- `apps/web`: Angular 21 + Tailwind CSS v4 (Standalone components, Signals). Port: 4200.
+- `apps/mobile`: Ionic 9 + Angular 22 Standalone + Capacitor 8. Port: 8100.
+- `apps/api`: NestJS 11 REST API. Port: 3000.
+- `apps/e2e`: Centralized test workspace (Serenity/JS, Cucumber BDD, Playwright, Appium 3 / WDIO 10).
+
+## Core Principles & Rules
+0. **Centralized Agent Skills**: Before executing tasks, consult the modular skills in `.agents/skills/`:
+   - `monorepo-workflow`: Port management, parallel builds, workspace commands.
+   - `cucumber-bdd`: Gherkin best practices, declarative scenarios, BRIEF, step reuse.
+   - `e2e-testing`: Serenity/JS Screenplay, Cucumber tags (`@web`, `@api`, `@mobile`).
+   - `mobile-appium`: Appium 3 / WDIO 10 automation, WebView / Native context switching.
+   - `angular-development`: Standalone components, Signals, Tailwind CSS v4 styling.
+   - `nestjs-api`: Controller-service architecture, CORS policies, data contracts.
+   - `implementation-workflow`: 6-phase engineering lifecycle: Baseline -> BDD -> Code -> Multi-Device -> Test Review -> Doc Sync.
+1. **Centralized Testing**: All E2E, API integration, and mobile Appium tests MUST be placed in `apps/e2e`. Never add E2E suites to `apps/web` or `apps/mobile`.
+2. **Commands**:
+   - Start all services: `npm start`
+   - Start individually: `npm run start:api`, `npm run start:web`, `npm run start:mobile`
+   - Build all: `npm run build:all`
+   - Run tests: `npm test`, `npm run test:web`, `npm run test:api`, `npm run test:mobile`, `npm run test:mobile:appium:android`, `npm run test:mobile:appium:ios`
+3. **Angular Guidelines**:
+   - Always use Standalone Components (`standalone: true` or Angular 19+ default).
+   - Use Angular Signals for reactive state (`signal()`, `computed()`).
+   - Do NOT use legacy `NgModule`.
+4. **NestJS Guidelines**:
+   - Keep business logic in `@Injectable()` services.
+   - Maintain typed interfaces and DTOs.
+5. **Testing Guidelines**:
+   - Cucumber feature files organized in `apps/e2e/features/{web,api,mobile}/`.
+   - Appium tests in `apps/e2e/appium/specs/` using Page Object Model.
+   - Screenplay pattern with `@serenity-js/core`.
+

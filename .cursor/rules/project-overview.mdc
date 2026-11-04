@@ -1,0 +1,16 @@
+---
+description: Charlotte Wealth Monorepo Overview and Global Rules
+globs: *
+---
+
+# Charlotte Wealth Monorepo Rules
+
+- **Structure**: Monorepo using npm workspaces (`apps/web`, `apps/mobile`, `apps/api`, `apps/e2e`).
+- **All code changes** must be made within the appropriate `apps/<workspace>` directory.
+- **Development commands**:
+  - `npm start`: Runs API (3000), Web (4200), and Mobile (8100) concurrently.
+  - `npm run build:all`: Builds all applications.
+  - `npm test`: Runs all centralized E2E Cucumber tests.
+- **Testing policy**: All end-to-end, API, and mobile tests belong in `apps/e2e`.
+- **Agent skills**: Modular domain skills live in `.agents/skills/` (`monorepo-workflow`, `e2e-testing`, `mobile-appium`, `angular-development`, `nestjs-api`). Cursor must utilize these skills when executing tasks.
+

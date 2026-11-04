@@ -1,0 +1,13 @@
+---
+description: Mobile Application Guidelines (apps/mobile)
+globs: apps/mobile/**/*
+---
+
+# Ionic + Angular Mobile Guidelines
+
+- **Tech Stack**: Ionic 9, Angular 22 Standalone, Capacitor 8.
+- **Port**: Configured for `http://localhost:8100` (`ng serve --port 8100`) to avoid conflicts with `web` on 4200.
+- **Components**: Use Ionic Standalone components with standard Ionic UI components (`ion-card`, `ion-tabs`, `ion-list`, etc.).
+- **Build command**: `npm run build:mobile` (outputs to `apps/mobile/www`).
+- **Testing**: Unit tests run via `npm run test:unit`. All mobile E2E and Appium tests are centralized in `apps/e2e`.
+

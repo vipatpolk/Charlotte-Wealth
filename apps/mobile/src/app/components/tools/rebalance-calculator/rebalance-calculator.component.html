@@ -1,0 +1,568 @@
+<div class="rebalance-container" id="rebalance-calculator-view">
+  <!-- Rebalance Settings & Control Card -->
+  <div class="rebalance-control-card">
+    <div class="control-top-row">
+      <div class="control-title-group">
+        <div class="mode-pill-badge">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mode-icon"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
+          <span>REBALANCE MODEL</span>
+        </div>
+        <h3 class="control-heading">Asset Allocation & Rebalance Planner</h3>
+      </div>
+
+      <!-- Mode Toggle Switcher -->
+      <div class="rebalance-mode-toggle">
+        <button
+          type="button"
+          class="mode-btn"
+          id="btn-mode-standard"
+          [class.active]="mode() === 'standard'"
+          (click)="setMode('standard')"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon-sm"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
+          <span class="mode-text-desktop">Standard (Buy & Sell)</span>
+          <span class="mode-text-mobile">Standard</span>
+        </button>
+        <button
+          type="button"
+          class="mode-btn"
+          id="btn-mode-nosell"
+          [class.active]="mode() === 'no-sell'"
+          (click)="setMode('no-sell')"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon-sm"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          <span class="mode-text-desktop">No-Sell (Buy-Only Inflow)</span>
+          <span class="mode-text-mobile">No-Sell Inflow</span>
+        </button>
+      </div>
+    </div>
+
+
+    <!-- Asset Class Filter Tabs -->
+    <div class="class-filter-bar">
+      <span class="filter-label">Filter Class:</span>
+      <div class="class-filter-chips">
+        @for (item of availableAssetClasses(); track item.id) {
+          <button
+            type="button"
+            class="class-chip"
+            [id]="'filter-class-' + item.id"
+            [class.active]="selectedAssetClassFilter() === item.id"
+            (click)="setAssetClassFilter(item.id)"
+          >
+            <span>{{ item.label }}</span>
+            <span class="class-chip-count">{{ item.count }}</span>
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- No-Sell Contribution Settings Panel -->
+    @if (mode() === 'no-sell') {
+      <div class="nosell-settings-panel" id="nosell-settings-panel">
+        <div class="nosell-submode-row">
+          <label class="nosell-radio-label">
+            <input
+              type="radio"
+              name="noSellSubMode"
+              id="radio-min-inflow"
+              [checked]="noSellSubMode() === 'min-inflow'"
+              (change)="setNoSellSubMode('min-inflow')"
+            />
+            <div class="radio-content">
+              <span class="radio-title">Calculate Minimum Cash Inflow to Meet Target</span>
+              <span class="radio-desc">Calculates the exact capital needed so no positions are sold.</span>
+            </div>
+          </label>
+
+          <label class="nosell-radio-label">
+            <input
+              type="radio"
+              name="noSellSubMode"
+              id="radio-custom-deposit"
+              [checked]="noSellSubMode() === 'custom-deposit'"
+              (change)="setNoSellSubMode('custom-deposit')"
+            />
+            <div class="radio-content">
+              <span class="radio-title">Custom Cash Deposit Budget</span>
+              <span class="radio-desc">Allocates available cash strictly to underweight positions.</span>
+            </div>
+          </label>
+        </div>
+
+        @if (noSellSubMode() === 'custom-deposit') {
+          <div class="deposit-input-group">
+            <label class="deposit-label" for="custom-cash-input">Available Cash Deposit:</label>
+            <div class="deposit-input-wrap">
+              <span class="currency-prefix">{{ displayCurrency() === 'THB' ? '฿' : '$' }}</span>
+              <input
+                type="number"
+                id="custom-cash-input"
+                class="deposit-input"
+                [ngModel]="customCashDeposit()"
+                (ngModelChange)="setCustomCashDeposit($event)"
+                min="0"
+                step="500"
+              />
+            </div>
+            <div class="deposit-quick-chips">
+              <button type="button" class="quick-chip" (click)="adjustCashDeposit(500)">+500</button>
+              <button type="button" class="quick-chip" (click)="adjustCashDeposit(1000)">+1,000</button>
+              <button type="button" class="quick-chip" (click)="adjustCashDeposit(5000)">+5,000</button>
+              <button type="button" class="quick-chip" (click)="adjustCashDeposit(10000)">+10,000</button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Rebalance Summary KPI Grid -->
+  <div class="rebalance-kpi-grid">
+    <div class="kpi-card">
+      <span class="kpi-label">{{ currentValueLabel() }}</span>
+      <div class="kpi-value-row">
+        <span class="kpi-value" [class.privacy-blur]="privacyMode()">
+          {{ filteredCurrentValue() | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+        </span>
+      </div>
+    </div>
+
+    @if (mode() === 'no-sell') {
+      <div class="kpi-card highlight-inflow">
+        <span class="kpi-label">{{ noSellSubMode() === 'min-inflow' ? 'Min Inflow Required' : 'Cash Contribution' }}</span>
+        <div class="kpi-value-row">
+          <span class="kpi-value text-emerald" [class.privacy-blur]="privacyMode()">
+            +{{ filteredCashContribution() | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+          </span>
+        </div>
+      </div>
+    }
+
+    <div class="kpi-card">
+      <span class="kpi-label">Total Buy Orders</span>
+      <div class="kpi-value-row">
+        <span class="kpi-value text-emerald" [class.privacy-blur]="privacyMode()">
+          {{ filteredBuyAmount() | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+        </span>
+      </div>
+    </div>
+
+    @if (mode() === 'standard') {
+      <div class="kpi-card">
+        <span class="kpi-label">Total Sell Orders</span>
+        <div class="kpi-value-row">
+          <span class="kpi-value text-rose" [class.privacy-blur]="privacyMode()">
+            {{ filteredSellAmount() | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+          </span>
+        </div>
+      </div>
+    }
+
+    <div class="kpi-card">
+      <span class="kpi-label">{{ targetValueLabel() }}</span>
+      <div class="kpi-value-row">
+        <span class="kpi-value" [class.privacy-blur]="privacyMode()">
+          {{ filteredTargetValue() | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Asset Class Groups Container -->
+  <div class="rebalance-groups-list">
+    @for (group of displayedGroups(); track group.assetType) {
+      <div class="asset-class-card" [id]="'rebalance-group-' + group.assetType">
+        <!-- Class Card Header -->
+        <div class="class-card-header">
+          <div class="header-left">
+            <div class="class-type-badge" [style.border-color]="group.color">
+              <span class="class-dot" [style.background-color]="group.color"></span>
+              <span class="class-title">{{ group.label }}</span>
+            </div>
+            <div class="class-meta-stats">
+              <span class="meta-item">
+                <span class="meta-label">Class Value:</span>
+                <strong class="meta-val" [class.privacy-blur]="privacyMode()">
+                  {{ group.currentValue | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+                </strong>
+              </span>
+              <span class="meta-sep">&bull;</span>
+              <span class="meta-item">
+                <span class="meta-label">Portfolio Share:</span>
+                <strong>{{ group.currentPortfolioPercent | number:'1.1-1' }}%</strong>
+              </span>
+            </div>
+          </div>
+
+          <div class="header-right">
+            <!-- Target Sum Indicator -->
+            <div class="target-sum-badge" [class.sum-valid]="group.isValid" [class.sum-invalid]="!group.isValid">
+              <span class="sum-label">Target Sum:</span>
+              <strong class="sum-value">{{ group.targetTotalPercent | number:'1.1-1' }}%</strong>
+              @if (group.isValid) {
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="sum-icon icon-valid"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              } @else {
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="sum-icon icon-invalid"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+              }
+            </div>
+
+            <!-- Quick Action Preset Buttons -->
+            <div class="class-quick-actions">
+              <button
+                type="button"
+                class="action-btn"
+                [id]="'btn-equal-weight-' + group.assetType"
+                (click)="applyEqualWeight(group)"
+                title="Equally distribute 100% across all symbols in this class"
+              >
+                <span>Equal Weight</span>
+              </button>
+              <button
+                type="button"
+                class="action-btn"
+                (click)="applyCurrentWeight(group)"
+                title="Set targets to match current holdings weight"
+              >
+                <span>Set Current</span>
+              </button>
+              <button
+                type="button"
+                class="action-btn"
+                (click)="normalizeGroup(group)"
+                title="Proportionally scale targets to 100%"
+              >
+                <span>Normalize</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        @if (!group.isValid) {
+          <div class="class-warning-alert">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="alert-icon"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <span>Target weights sum to <strong>{{ group.targetTotalPercent | number:'1.1-1' }}%</strong>. Please adjust them to sum to 100% or click <em>Normalize</em>.</span>
+          </div>
+        }
+
+        <!-- Desktop Symbol Table Breakdown (>= 1024px) -->
+        <div class="symbol-table-wrapper desktop-only">
+          <table class="rebalance-table">
+            <thead>
+              <tr>
+                <th class="th-symbol">Symbol</th>
+                <th class="th-shares">Current Position</th>
+                <th class="th-weight">Current %</th>
+                <th class="th-target">Target %</th>
+                <th class="th-target-val">Target Value</th>
+                <th class="th-action">Rebalance Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of group.symbols; track item.symbol) {
+                <tr class="symbol-row" [id]="'rebalance-row-' + item.symbol">
+                  <!-- Symbol Column -->
+                  <td class="td-symbol">
+                    <div class="sym-badge-cell">
+                      <span class="sym-dot" [style.background-color]="item.color"></span>
+                      <div class="sym-info">
+                        <span class="sym-ticker">{{ item.displaySymbol }}</span>
+                        <span class="sym-price" [class.privacy-blur]="privacyMode()">
+                          {{ item.currentPrice | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+
+                  <!-- Current Holding -->
+                  <td class="td-shares">
+                    <div class="holding-cell">
+                      <span class="holding-val" [class.privacy-blur]="privacyMode()">
+                        {{ item.currentValue | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+                      </span>
+                      <span class="holding-shares" [class.privacy-blur]="privacyMode()">
+                        {{ item.currentShares | number:'1.0-4' }} sh
+                      </span>
+                    </div>
+                  </td>
+
+                  <!-- Current Class % -->
+                  <td class="td-weight">
+                    <div class="weight-cell">
+                      <div class="weight-bar-bg">
+                        <div class="weight-bar-fill" [style.width.%]="item.currentClassPercent" [style.background-color]="item.color"></div>
+                      </div>
+                      <span class="weight-text">{{ item.currentClassPercent | number:'1.1-1' }}%</span>
+                    </div>
+                  </td>
+
+                  <!-- Target % Input Stepper -->
+                  <td class="td-target">
+                    <div class="target-stepper">
+                      <button
+                        type="button"
+                        class="step-btn step-minus"
+                        (click)="adjustTarget(item.symbol, -1)"
+                        title="Decrease target %"
+                      >-</button>
+                      <input
+                        type="number"
+                        class="target-input"
+                        [id]="'target-input-' + item.symbol"
+                        [ngModel]="item.targetPercent"
+                        (ngModelChange)="updateTarget(item.symbol, $event)"
+                        min="0"
+                        max="100"
+                        step="1"
+                      />
+
+                      <span class="target-pct-symbol">%</span>
+                      <button
+                        type="button"
+                        class="step-btn step-plus"
+                        (click)="adjustTarget(item.symbol, 1)"
+                        title="Increase target %"
+                      >+</button>
+                    </div>
+                  </td>
+
+                  <!-- Target Value -->
+                  <td class="td-target-val">
+                    <span class="target-val-text" [class.privacy-blur]="privacyMode()">
+                      {{ item.targetValue | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+                    </span>
+                  </td>
+
+                  <!-- Action Needed Badge -->
+                  <td class="td-action">
+                    @if (item.action === 'BUY') {
+                      <div class="action-badge badge-buy">
+                        <span class="action-type">BUY</span>
+                        <div class="action-details">
+                          <span class="action-amount" [class.privacy-blur]="privacyMode()">
+                            +{{ item.deltaValue | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+                          </span>
+                          <span class="action-shares" [class.privacy-blur]="privacyMode()">
+                            (+{{ item.deltaShares | number:'1.0-4' }} sh)
+                          </span>
+                        </div>
+                      </div>
+                    } @else if (item.action === 'SELL') {
+                      <div class="action-badge badge-sell">
+                        <span class="action-type">SELL</span>
+                        <div class="action-details">
+                          <span class="action-amount" [class.privacy-blur]="privacyMode()">
+                            -{{ (item.deltaValue < 0 ? -item.deltaValue : item.deltaValue) | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+                          </span>
+                          <span class="action-shares" [class.privacy-blur]="privacyMode()">
+                            (-{{ (item.deltaShares < 0 ? -item.deltaShares : item.deltaShares) | number:'1.0-4' }} sh)
+                          </span>
+                        </div>
+                      </div>
+                    } @else {
+                      <div class="action-badge badge-balanced">
+                        <span class="action-type">BALANCED</span>
+                        @if (item.isAnchorPosition) {
+                          <span class="anchor-tag">Anchor</span>
+                        }
+                      </div>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Mobile & Tablet Responsive Symbol Cards (< 1024px) -->
+        <div class="mobile-symbol-cards-list mobile-tablet-only">
+          @for (item of group.symbols; track item.symbol) {
+            <div class="mobile-symbol-card" [id]="'rebalance-card-' + item.symbol">
+              <!-- Top Row: Symbol Info (Left) & Action Badge (Right) -->
+              <div class="m-card-top-row">
+                <div class="sym-badge-cell">
+                  <span class="sym-dot" [style.background-color]="item.color"></span>
+                  <div class="sym-info">
+                    <span class="sym-ticker">{{ item.displaySymbol }}</span>
+                    <span class="sym-price" [class.privacy-blur]="privacyMode()">
+                      {{ item.currentPrice | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="m-card-action-wrap">
+                  @if (item.action === 'BUY') {
+                    <div class="action-badge badge-buy">
+                      <span class="action-type">BUY</span>
+                      <div class="action-details">
+                        <span class="action-amount" [class.privacy-blur]="privacyMode()">
+                          +{{ item.deltaValue | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+                        </span>
+                        <span class="action-shares" [class.privacy-blur]="privacyMode()">
+                          (+{{ item.deltaShares | number:'1.0-4' }} sh)
+                        </span>
+                      </div>
+                    </div>
+                  } @else if (item.action === 'SELL') {
+                    <div class="action-badge badge-sell">
+                      <span class="action-type">SELL</span>
+                      <div class="action-details">
+                        <span class="action-amount" [class.privacy-blur]="privacyMode()">
+                          -{{ (item.deltaValue < 0 ? -item.deltaValue : item.deltaValue) | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+                        </span>
+                        <span class="action-shares" [class.privacy-blur]="privacyMode()">
+                          (-{{ (item.deltaShares < 0 ? -item.deltaShares : item.deltaShares) | number:'1.0-4' }} sh)
+                        </span>
+                      </div>
+                    </div>
+                  } @else {
+                    <div class="action-badge badge-balanced">
+                      <span class="action-type">BALANCED</span>
+                      @if (item.isAnchorPosition) {
+                        <span class="anchor-tag">Anchor</span>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <!-- Metrics Row: Position, Current %, Target Value -->
+              <div class="m-card-metrics-grid">
+                <div class="m-metric-item">
+                  <span class="m-metric-label">Current Position</span>
+                  <span class="m-metric-val" [class.privacy-blur]="privacyMode()">
+                    {{ item.currentValue | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+                  </span>
+                  <span class="m-metric-sub" [class.privacy-blur]="privacyMode()">
+                    {{ item.currentShares | number:'1.0-4' }} sh
+                  </span>
+                </div>
+
+                <div class="m-metric-item">
+                  <span class="m-metric-label">Current Weight</span>
+                  <div class="weight-cell">
+                    <div class="weight-bar-bg">
+                      <div class="weight-bar-fill" [style.width.%]="item.currentClassPercent" [style.background-color]="item.color"></div>
+                    </div>
+                    <span class="weight-text">{{ item.currentClassPercent | number:'1.1-1' }}%</span>
+                  </div>
+                </div>
+
+                <div class="m-metric-item">
+                  <span class="m-metric-label">Target Value</span>
+                  <span class="m-metric-val" [class.privacy-blur]="privacyMode()">
+                    {{ item.targetValue | currency:displayCurrency():'symbol-narrow':'1.2-2' }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Bottom Control Row: Target Weight Stepper -->
+              <div class="m-card-control-row">
+                <div class="m-control-info">
+                  <span class="m-control-label">Target Weight</span>
+                  <span class="m-control-desc">Class allocation %</span>
+                </div>
+
+                <div class="target-stepper">
+                  <button
+                    type="button"
+                    class="step-btn step-minus"
+                    (click)="adjustTarget(item.symbol, -1)"
+                    title="Decrease target %"
+                  >-</button>
+                  <input
+                    type="number"
+                    class="target-input"
+                    [id]="'target-input-mobile-' + item.symbol"
+                    [ngModel]="item.targetPercent"
+                    (ngModelChange)="updateTarget(item.symbol, $event)"
+                    min="0"
+                    max="100"
+                    step="1"
+                  />
+                  <span class="target-pct-symbol">%</span>
+                  <button
+                    type="button"
+                    class="step-btn step-plus"
+                    (click)="adjustTarget(item.symbol, 1)"
+                    title="Increase target %"
+                  >+</button>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+    } @empty {
+      <div class="empty-rebalance-card">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="empty-icon"><circle cx="12" cy="12" r="10"></circle><path d="M16 16s-1.5-2-4-2-4 2-4 2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+        <p class="empty-title">No Open Positions to Rebalance</p>
+        <p class="empty-desc">There are no open positions currently available for the selected asset class.</p>
+      </div>
+    }
+  </div>
+
+  <!-- Rebalance Orders Checklist Drawer -->
+  @if (orders().length > 0) {
+    <div class="rebalance-orders-drawer" id="rebalance-orders-checklist">
+      <div class="drawer-header" (click)="toggleOrdersExpanded()">
+        <div class="drawer-header-left">
+          <div class="drawer-icon-wrap">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="drawer-icon"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+          </div>
+          <div>
+            <h4 class="drawer-title">Trade Execution Plan</h4>
+            <span class="drawer-subtitle">{{ orders().length }} recommended order{{ orders().length === 1 ? '' : 's' }}</span>
+          </div>
+        </div>
+
+        <div class="drawer-header-right">
+          <button
+            type="button"
+            class="btn-copy-orders"
+            id="btn-copy-trade-plan"
+            (click)="$event.stopPropagation(); copyOrdersToClipboard()"
+          >
+            @if (isCopiedOrders()) {
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon-xs"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>Copied!</span>
+            } @else {
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon-xs"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span>Copy Trade Plan</span>
+            }
+          </button>
+
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="drawer-chevron" [class.rotated]="isOrdersExpanded()"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </div>
+      </div>
+
+      @if (isOrdersExpanded()) {
+        <div class="drawer-content">
+          <div class="orders-grid">
+            @for (order of orders(); track order.id; let idx = $index) {
+              <div class="order-item-card" [class.order-buy]="order.action === 'BUY'" [class.order-sell]="order.action === 'SELL'">
+                <div class="order-num">{{ idx + 1 }}</div>
+                <div class="order-action-pill" [class.pill-buy]="order.action === 'BUY'" [class.pill-sell]="order.action === 'SELL'">
+                  {{ order.action }}
+                </div>
+                <div class="order-main-info">
+                  <span class="order-sym">{{ order.displaySymbol }}</span>
+                  <span class="order-shares" [class.privacy-blur]="privacyMode()">
+                    {{ order.shares | number:'1.0-4' }} shares @ {{ order.price | currency:order.currency:'symbol-narrow':'1.2-2' }}
+                  </span>
+                </div>
+                <div class="order-amount-col">
+                  <span class="order-amount" [class.privacy-blur]="privacyMode()">
+                    {{ order.action === 'BUY' ? '+' : '-' }}{{ order.amount | currency:order.currency:'symbol-narrow':'1.2-2' }}
+                  </span>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

@@ -1,0 +1,352 @@
+<div class="allocation-container">
+  <div class="allocation-top-row">
+    <div class="allocation-card">
+      <div class="allocation-card-header">
+        <h2 class="allocation-card-title">
+          Asset Distribution{{ selectedAssetType() ? ' (' + selectedAssetLabel() + ')' : '' }}
+        </h2>
+        @if (selectedAssetType()) {
+          <button class="back-class-btn" (click)="selectAssetType(null)">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="btn-icon"
+            >
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+            All Asset Classes
+          </button>
+        }
+      </div>
+      <div class="donut-chart-wrapper">
+        <svg viewBox="0 0 42 42" class="donut-svg">
+          <circle
+            cx="21"
+            cy="21"
+            r="15.91549430918954"
+            fill="transparent"
+            stroke="var(--bg-card)"
+            stroke-width="6"
+          ></circle>
+          @for (seg of donutSegments(); track seg.key) {
+            <circle
+              cx="21"
+              cy="21"
+              r="15.91549430918954"
+              fill="transparent"
+              [attr.stroke]="seg.color"
+              stroke-width="5"
+              [attr.stroke-dasharray]="seg.dashArray"
+              [attr.stroke-dashoffset]="seg.dashOffset"
+              class="donut-segment"
+              [class.active-donut-segment]="selectedAssetType() === seg.key"
+              (click)="!selectedAssetType() && selectAssetType(seg.key)"
+            >
+              <title>{{ seg.label }}: {{ seg.actualPercent | number: '1.1-1' }}%</title>
+            </circle>
+          }
+        </svg>
+        <div class="donut-center-text">
+          <div class="donut-center-val">
+            {{ displayTotalValue() | currency: displayCurrency() : 'symbol-narrow' : '1.0-0' }}
+          </div>
+          <div class="donut-center-label">
+            {{ selectedAssetType() ? selectedAssetLabel() : 'Total Value' }}
+          </div>
+        </div>
+      </div>
+
+      <div class="donut-legend">
+        @for (seg of donutSegments(); track seg.key) {
+          <div
+            class="legend-item"
+            [class.clickable-legend-item]="!selectedAssetType()"
+            [class.active-legend-item]="selectedAssetType() === seg.key"
+            (click)="!selectedAssetType() && selectAssetType(seg.key)"
+            [title]="!selectedAssetType() ? 'Filter by ' + seg.label : seg.label"
+          >
+            <div class="legend-color" [style.background-color]="seg.color"></div>
+            <div class="legend-label">{{ seg.label }}</div>
+            <div class="legend-value">{{ seg.actualPercent | number: '1.1-1' }}%</div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="allocation-card">
+      <div class="allocation-card-header">
+        @if (!selectedAssetType()) {
+          <h2 class="allocation-card-title">Asset Class Breakdown</h2>
+        } @else {
+          <div class="card-title-with-badge">
+            <h2 class="allocation-card-title">Symbol Allocation in {{ selectedAssetLabel() }}</h2>
+            <span
+              class="active-class-pill"
+              [style.background-color]="getAssetColor(selectedAssetType()!) + '18'"
+              [style.color]="getAssetColor(selectedAssetType()!)"
+              [style.border-color]="getAssetColor(selectedAssetType()!) + '40'"
+            >
+              {{ selectedAssetLabel() }}
+              <button class="pill-remove-btn" (click)="selectAssetType(null)" title="Clear filter">
+                ✕
+              </button>
+            </span>
+          </div>
+        }
+      </div>
+
+      @if (!selectedAssetType()) {
+        <div class="rebalance-list">
+          <div class="rebalance-list-header desktop-only">
+            <div class="rebalance-col-asset">Asset Class</div>
+            <div class="rebalance-col-value text-right">Value</div>
+            <div class="rebalance-col-actual text-right">Allocation %</div>
+          </div>
+
+          @for (rec of recommendations(); track rec.assetType) {
+            <div
+              class="rebalance-item-container clickable-class-row"
+              [class.active-rebalance-row]="selectedAssetType() === rec.assetType"
+              (click)="selectAssetType(rec.assetType)"
+            >
+              <div class="rebalance-main-row">
+                <div class="rebalance-col-asset">
+                  <div class="asset-class-cell">
+                    <div
+                      class="legend-color"
+                      [style.background-color]="getAssetColor(rec.assetType)"
+                    ></div>
+                    <span class="asset-class-name">{{ getAssetLabel(rec.assetType) }}</span>
+                    <span
+                      class="filter-hint-icon"
+                      title="Filter by {{ getAssetLabel(rec.assetType) }}"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        class="chevron-sm"
+                      >
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
+                    </span>
+                  </div>
+                </div>
+
+                <div class="rebalance-mobile-stats">
+                  <div class="rebalance-col-value text-right">
+                    <span class="mobile-label">Value:</span>
+                    <span class="font-mono">{{
+                      rec.currentValue | currency: displayCurrency() : 'symbol-narrow' : '1.0-0'
+                    }}</span>
+                  </div>
+
+                  <div class="rebalance-col-actual text-right">
+                    <span class="mobile-label">Allocation:</span>
+                    <span class="font-mono">{{ rec.actualPercent | number: '1.1-1' }}%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+
+          <div
+            class="rebalance-item-container total-row-container"
+            style="
+              background: transparent;
+              border-top: 2px solid var(--border-color);
+              border-bottom: none;
+              border-left: none;
+              border-right: none;
+              border-radius: 0;
+            "
+          >
+            <div class="rebalance-main-row total-row" style="cursor: default">
+              <div class="rebalance-col-asset desktop-text-right" style="font-weight: 600">
+                Total
+              </div>
+              <div class="rebalance-mobile-stats">
+                <div class="rebalance-col-value text-right" style="font-weight: 600">
+                  <span class="mobile-label">Value:</span>
+                  <span class="font-mono">{{
+                    totalValue() | currency: displayCurrency() : 'symbol-narrow' : '1.0-0'
+                  }}</span>
+                </div>
+                <div class="rebalance-col-actual text-right" style="font-weight: 600">
+                  <span class="mobile-label">Allocation:</span>
+                  <span class="font-mono">{{ actualTotal() | number: '1.1-1' }}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      } @else {
+        <!-- Symbol Allocation in Class Table -->
+        <div class="symbol-class-list">
+          <div class="symbol-class-header desktop-only">
+            <div class="symbol-col-info">Symbol</div>
+            <div class="symbol-col-shares text-right">Shares</div>
+            <div class="symbol-col-value text-right">Value</div>
+            <div class="symbol-col-class-pct text-right">Class %</div>
+            <div class="symbol-col-port-pct text-right">Portfolio %</div>
+          </div>
+
+          @for (item of enrichedClassHoldings(); track item.symbol) {
+            <div class="symbol-class-item">
+              <div class="symbol-col-info">
+                <app-symbol-icon [symbol]="item.symbol" [size]="'sm'"></app-symbol-icon>
+                <span
+                  class="symbol-badge"
+                  [style.background-color]="item.color + '18'"
+                  [style.color]="item.color"
+                  [style.border-color]="item.color + '30'"
+                >
+                  {{ item.displaySymbol }}
+                </span>
+                @if (item.name) {
+                  <span class="symbol-full-name" [title]="item.name">{{ item.name }}</span>
+                }
+              </div>
+
+              <div class="symbol-mobile-stats">
+                <div class="symbol-col-shares text-right font-mono">
+                  <span class="mobile-label">Shares:</span>
+                  <span>{{ item.shares | number: '1.0-4' }}</span>
+                </div>
+                <div class="symbol-col-value text-right font-mono">
+                  <span class="mobile-label">Value:</span>
+                  <span>{{
+                    item.value | currency: displayCurrency() : 'symbol-narrow' : '1.0-0'
+                  }}</span>
+                </div>
+                <div class="symbol-col-class-pct text-right font-mono font-semibold">
+                  <span class="mobile-label">Class %:</span>
+                  <span>{{ item.classPercent | number: '1.1-1' }}%</span>
+                </div>
+                <div class="symbol-col-port-pct text-right font-mono text-muted">
+                  <span class="mobile-label">Port %:</span>
+                  <span>{{ item.portfolioPercent | number: '1.1-1' }}%</span>
+                </div>
+              </div>
+            </div>
+          } @empty {
+            <div class="empty-symbol-state">No holdings found in {{ selectedAssetLabel() }}.</div>
+          }
+
+          <div
+            class="symbol-class-item total-row"
+            style="border-top: 2px solid var(--border-color); font-weight: 600"
+          >
+            <div class="symbol-col-info">Class Total</div>
+            <div class="symbol-mobile-stats">
+              <div class="symbol-col-shares text-right"></div>
+              <div class="symbol-col-value text-right font-mono">
+                {{ classTotalValue() | currency: displayCurrency() : 'symbol-narrow' : '1.0-0' }}
+              </div>
+              <div class="symbol-col-class-pct text-right font-mono">100.0%</div>
+              <div class="symbol-col-port-pct text-right font-mono text-muted">
+                @for (r of recommendations(); track r.assetType) {
+                  @if (r.assetType === selectedAssetType()) {
+                    {{ r.actualPercent | number: '1.1-1' }}%
+                  }
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  @if (!selectedAssetType()) {
+    <div class="allocation-bottom-row">
+      <div class="allocation-card">
+        <h2 class="allocation-card-title">Currency Exposure</h2>
+        <div class="currency-bar-wrapper">
+          <div class="currency-labels">
+            <span
+              >USD
+              <span class="text-muted"
+                >({{ currencyExposure().usdPercent | number: '1.1-1' }}%)</span
+              ></span
+            >
+            <span
+              >THB
+              <span class="text-muted"
+                >({{ currencyExposure().thbPercent | number: '1.1-1' }}%)</span
+              ></span
+            >
+          </div>
+          <div class="currency-bar">
+            <div
+              class="currency-segment usd-segment"
+              [style.width.%]="currencyExposure().usdPercent"
+            ></div>
+            <div
+              class="currency-segment thb-segment"
+              [style.width.%]="currencyExposure().thbPercent"
+            ></div>
+          </div>
+          <div class="currency-values">
+            <span>{{ currencyExposure().usd | currency: 'USD' : 'symbol-narrow' : '1.0-0' }}</span>
+            <span>{{ currencyExposure().thb | currency: 'THB' : 'symbol-narrow' : '1.0-0' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="allocation-card">
+        <div class="allocation-card-header">
+          <h2 class="allocation-card-title">Top Holdings Concentration</h2>
+          @if (allHoldings().length > 5) {
+            <button class="edit-target-btn" (click)="toggleShowAllHoldings()">
+              {{ showAllHoldings() ? 'Show Top 5' : 'Show All' }}
+            </button>
+          }
+        </div>
+        <div class="concentration-list">
+          @for (holding of displayedHoldings(); track holding.symbol) {
+            <div class="concentration-item">
+              <div class="concentration-header">
+                <div class="concentration-symbol">
+                  <app-symbol-icon [symbol]="holding.symbol" [size]="'sm'"></app-symbol-icon>
+                  <span
+                    class="symbol-badge"
+                    [style.background-color]="holding.color + '18'"
+                    [style.color]="holding.color"
+                    [style.border-color]="holding.color + '30'"
+                  >
+                    {{ holding.displaySymbol }}
+                  </span>
+                </div>
+                <div class="concentration-stats">
+                  <span class="concentration-val font-mono">{{
+                    holding.value | currency: displayCurrency() : 'symbol-narrow' : '1.0-0'
+                  }}</span>
+                  <span class="concentration-pct font-mono" [class.text-red]="holding.percent > 15"
+                    >{{ holding.percent | number: '1.1-1' }}%</span
+                  >
+                </div>
+              </div>
+              <div class="concentration-bar-container">
+                <div
+                  class="concentration-bar"
+                  [style.width.%]="holding.percent"
+                  [style.background-color]="holding.color"
+                ></div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

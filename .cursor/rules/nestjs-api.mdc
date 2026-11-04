@@ -1,0 +1,15 @@
+---
+description: Backend REST API Guidelines (apps/api)
+globs: apps/api/**/*
+---
+
+# NestJS Backend API Guidelines
+
+- **Tech Stack**: NestJS 11, TypeScript, Express platform.
+- **Port**: Listens on `http://localhost:3000`.
+- **CORS**: Must be enabled for `http://localhost:4200` and `http://localhost:8100`.
+- **Architecture**:
+  - `src/app.controller.ts`: Endpoint routing (`GET /`, `GET /health`, `GET /api/portfolio`).
+  - `src/app.service.ts`: Portfolio data models and wealth calculation logic.
+- **Build command**: `npm run build:api` (outputs to `apps/api/dist`).
+
