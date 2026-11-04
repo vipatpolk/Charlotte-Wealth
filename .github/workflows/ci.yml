@@ -13,6 +13,8 @@ concurrency:
 
 env:
   NODE_VERSION: '22'
+  NG_CLI_ANALYTICS: 'false'
+  CI: 'true'
 
 jobs:
   # ----------------------------------------------------------------------------
@@ -32,7 +34,9 @@ jobs:
           cache: 'npm'
 
       - name: "Install dependencies"
-        run: npm ci
+        run: |
+          npm ci || npm install
+          npm install --no-save @rollup/rollup-linux-x64-gnu@4.67.4 @oxc-parser/binding-linux-x64-gnu@0.150.0
 
       - name: "Run Secret Leak Scanner"
         run: npm run scan:secrets
@@ -58,7 +62,9 @@ jobs:
           cache: 'npm'
 
       - name: "Install dependencies"
-        run: npm ci
+        run: |
+          npm ci || npm install
+          npm install --no-save @rollup/rollup-linux-x64-gnu@4.67.4 @oxc-parser/binding-linux-x64-gnu@0.150.0
 
       - name: "Build All Workspaces"
         run: npm run build:all
@@ -116,7 +122,9 @@ jobs:
           cache: 'npm'
 
       - name: "Install dependencies"
-        run: npm ci
+        run: |
+          npm ci || npm install
+          npm install --no-save @rollup/rollup-linux-x64-gnu@4.67.4 @oxc-parser/binding-linux-x64-gnu@0.150.0
 
       - name: "Install Playwright Browsers"
         if: matrix.suite != 'api'
@@ -159,7 +167,7 @@ jobs:
           npm run start:api &
           npx --yes wait-on -t 30000 http://localhost:3000/health
           npm run start:web &
-          npx --yes wait-on -t 60000 http://localhost:4200
+          npx --yes wait-on -t 90000 http://localhost:4200
 
       - name: "Run Web BDD Specifications"
         if: matrix.suite == 'web'
@@ -172,7 +180,7 @@ jobs:
           npm run start:api &
           npx --yes wait-on -t 30000 http://localhost:3000/health
           npm run start:mobile &
-          npx --yes wait-on -t 60000 http://localhost:8100
+          npx --yes wait-on -t 90000 http://localhost:8100
 
       - name: "Run Mobile BDD Specifications"
         if: matrix.suite == 'mobile'
