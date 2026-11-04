@@ -35,7 +35,7 @@ jobs:
       - name: "Install dependencies"
         run: |
           rm -f package-lock.json
-          npm install --no-audit --no-fund
+          npm install --no-audit --no-fund --legacy-peer-deps
 
       - name: "Run Secret Leak Scanner"
         run: npm run scan:secrets
@@ -62,7 +62,7 @@ jobs:
       - name: "Install dependencies"
         run: |
           rm -f package-lock.json
-          npm install --no-audit --no-fund
+          npm install --no-audit --no-fund --legacy-peer-deps
 
       - name: "Build All Workspaces"
         run: npm run build:all
@@ -121,7 +121,7 @@ jobs:
       - name: "Install dependencies"
         run: |
           rm -f package-lock.json
-          npm install --no-audit --no-fund
+          npm install --no-audit --no-fund --legacy-peer-deps
 
       - name: "Install Playwright Browsers"
         if: matrix.suite != 'api'
@@ -150,8 +150,12 @@ jobs:
       - name: "Start NestJS API Server (Suite: api)"
         if: matrix.suite == 'api'
         run: |
-          npm run start:api &
-          npx --yes wait-on -t 30000 http://localhost:3000/health
+          npm run start:api > api.log 2>&1 &
+          if ! npx --yes wait-on -t 30000 http://localhost:3000/health; then
+            echo "API Server failed to become healthy. Output log:"
+            cat api.log
+            exit 1
+          fi
 
       - name: "Run API BDD Specifications"
         if: matrix.suite == 'api'
@@ -161,10 +165,18 @@ jobs:
       - name: "Start API & Web Dev Servers (Suite: web)"
         if: matrix.suite == 'web'
         run: |
-          npm run start:api &
-          npx --yes wait-on -t 30000 http://localhost:3000/health
-          npm run start:web &
-          npx --yes wait-on -t 90000 http://localhost:4200
+          npm run start:api > api.log 2>&1 &
+          if ! npx --yes wait-on -t 30000 http://localhost:3000/health; then
+            echo "API Server failed to become healthy. Output log:"
+            cat api.log
+            exit 1
+          fi
+          npm run start:web > web.log 2>&1 &
+          if ! npx --yes wait-on -t 120000 http://localhost:4200; then
+            echo "Web Dev Server failed to start. Output log:"
+            cat web.log
+            exit 1
+          fi
 
       - name: "Run Web BDD Specifications"
         if: matrix.suite == 'web'
@@ -174,10 +186,18 @@ jobs:
       - name: "Start API & Mobile Dev Servers (Suite: mobile)"
         if: matrix.suite == 'mobile'
         run: |
-          npm run start:api &
-          npx --yes wait-on -t 30000 http://localhost:3000/health
-          npm run start:mobile &
-          npx --yes wait-on -t 90000 http://localhost:8100
+          npm run start:api > api.log 2>&1 &
+          if ! npx --yes wait-on -t 30000 http://localhost:3000/health; then
+            echo "API Server failed to become healthy. Output log:"
+            cat api.log
+            exit 1
+          fi
+          npm run start:mobile > mobile.log 2>&1 &
+          if ! npx --yes wait-on -t 120000 http://localhost:8100; then
+            echo "Mobile Dev Server failed to start. Output log:"
+            cat mobile.log
+            exit 1
+          fi
 
       - name: "Run Mobile BDD Specifications"
         if: matrix.suite == 'mobile'
