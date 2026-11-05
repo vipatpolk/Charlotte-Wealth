@@ -48,4 +48,7 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Agent local configs
+.agents/mcp_config.json
+
 .vercel
