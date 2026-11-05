@@ -5,8 +5,6 @@
     "web": {
       "root": "apps/web",
       "framework": "angular",
-      "buildCommand": "npm run build",
-      "outputDirectory": "dist/web/browser",
       "rewrites": [
         {
           "source": "/(.*)",
@@ -16,8 +14,7 @@
     },
     "api": {
       "root": "apps/api",
-      "framework": "nestjs",
-      "buildCommand": "npm run build"
+      "framework": "nestjs"
     }
   },
   "rewrites": [
