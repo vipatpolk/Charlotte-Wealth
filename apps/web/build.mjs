@@ -18,7 +18,9 @@ console.log(`[build.mjs] Node: ${process.version}, Platform: ${process.platform}
 if (process.platform === 'linux') {
   const possiblePaths = [
     path.resolve('node_modules/@esbuild/linux-x64/bin/esbuild'),
+    path.resolve('node_modules/@esbuild/linux-arm64/bin/esbuild'),
     path.resolve('../../node_modules/@esbuild/linux-x64/bin/esbuild'),
+    path.resolve('../../node_modules/@esbuild/linux-arm64/bin/esbuild'),
     path.resolve('node_modules/esbuild/bin/esbuild'),
     path.resolve('../../node_modules/esbuild/bin/esbuild'),
   ];

@@ -49,6 +49,12 @@
   "engines": {
     "node": "22.x"
   },
+  "overrides": {
+    "esbuild": "0.28.2",
+    "@angular/build": {
+      "esbuild": "0.28.2"
+    }
+  },
   "allowScripts": {
     "esbuild": true,
     "esbuild@0.28.1": true,
