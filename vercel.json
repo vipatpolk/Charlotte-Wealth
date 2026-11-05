@@ -5,6 +5,7 @@
     "web": {
       "root": "apps/web",
       "framework": "angular",
+      "installCommand": "npm install --legacy-peer-deps --no-audit --no-fund",
       "buildCommand": "npm run build",
       "outputDirectory": "dist/web/browser",
       "rewrites": [
@@ -17,6 +18,7 @@
     "api": {
       "root": "apps/api",
       "framework": "nestjs",
+      "installCommand": "npm install --legacy-peer-deps --no-audit --no-fund",
       "buildCommand": "npm run build"
     }
   },
