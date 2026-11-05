@@ -4,7 +4,7 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve --port 4200 --proxy-config proxy.conf.json",
-    "build": "ng build --progress=false",
+    "build": "cross-env NG_CLI_ANALYTICS=false ng build --progress=false",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },
@@ -43,7 +43,7 @@
     "vitest": "^5.1.0"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": "22.x"
   },
   "allowScripts": {
     "esbuild": true,

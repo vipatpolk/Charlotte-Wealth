@@ -6,7 +6,7 @@
       "root": "apps/web",
       "framework": "angular",
       "installCommand": "cd ../.. && npm install --legacy-peer-deps --no-audit --no-fund",
-      "buildCommand": "npm run build",
+      "buildCommand": "NG_CLI_ANALYTICS=false npm run build",
       "outputDirectory": "dist/web/browser",
       "rewrites": [
         {

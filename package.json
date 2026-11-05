@@ -16,7 +16,7 @@
     "start:mobile": "npm run start --workspace=mobile",
     "start:api": "npm run start --workspace=api",
     "build": "npm run build:api && npm run build:web",
-    "build:web": "npm run build --workspace=web",
+    "build:web": "cross-env NG_CLI_ANALYTICS=false npm run build --workspace=web",
     "build:mobile": "npm run build --workspace=mobile",
     "build:api": "npm run build --workspace=api",
     "build:all": "npm run build:api && npm run build:web && npm run build:mobile",
@@ -47,7 +47,7 @@
     "vite": "^8.3.5"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": "22.x"
   },
   "allowScripts": {
     "esbuild": true,
@@ -58,6 +58,9 @@
     "lmdb": true,
     "lmdb@3.5.1": true,
     "msgpackr-extract": true,
-    "msgpackr-extract@3.0.6": true
+    "msgpackr-extract@3.0.6": true,
+    "geckodriver": false,
+    "edgedriver": false,
+    "appium": false
   }
 }
