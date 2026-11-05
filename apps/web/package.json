@@ -4,7 +4,7 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve --port 4200 --proxy-config proxy.conf.json",
-    "build": "ng build --progress=false",
+    "build": "ng build --progress=false --verbose",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },
@@ -49,6 +49,7 @@
   "allowScripts": {
     "esbuild": true,
     "esbuild@0.28.1": true,
+    "esbuild@0.28.2": true,
     "@parcel/watcher": true,
     "@parcel/watcher@2.6.0": true,
     "lmdb": true,

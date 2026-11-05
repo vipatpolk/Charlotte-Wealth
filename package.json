@@ -52,6 +52,7 @@
   "allowScripts": {
     "esbuild": true,
     "esbuild@0.28.1": true,
+    "esbuild@0.28.2": true,
     "@parcel/watcher": true,
     "@parcel/watcher@2.6.0": true,
     "lmdb": true,
