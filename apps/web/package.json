@@ -4,7 +4,7 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve --port 4200 --proxy-config proxy.conf.json",
-    "build": "cross-env NG_CLI_ANALYTICS=false ng build --progress=false",
+    "build": "node build.mjs",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },

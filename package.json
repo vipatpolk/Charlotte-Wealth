@@ -16,7 +16,7 @@
     "start:mobile": "npm run start --workspace=mobile",
     "start:api": "npm run start --workspace=api",
     "build": "npm run build:api && npm run build:web",
-    "build:web": "cross-env NG_CLI_ANALYTICS=false npm run build --workspace=web",
+    "build:web": "npm run build --workspace=web",
     "build:mobile": "npm run build --workspace=mobile",
     "build:api": "npm run build --workspace=api",
     "build:all": "npm run build:api && npm run build:web && npm run build:mobile",

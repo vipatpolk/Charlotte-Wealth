@@ -4,6 +4,9 @@
   "cli": {
     "packageManager": "npm",
     "analytics": false,
+    "completion": {
+      "prompted": true
+    },
     "cache": {
       "enabled": false
     }
