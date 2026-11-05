@@ -45,5 +45,14 @@
     "ts-node": "^10.9.2",
     "typescript": "~6.0.3",
     "vite": "^8.3.5"
+  },
+  "engines": {
+    "node": "24.x"
+  },
+  "allowScripts": {
+    "esbuild": true,
+    "@parcel/watcher": true,
+    "lmdb": true,
+    "msgpackr-extract": true
   }
 }
