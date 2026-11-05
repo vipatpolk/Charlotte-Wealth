@@ -3,7 +3,6 @@
 # Workspaces not required for Web frontend deployment
 apps/mobile
 apps/e2e
-apps/api
 
 # Test and tooling artifacts
 target
